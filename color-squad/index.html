@@ -312,7 +312,7 @@ function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=1.08;speech
 /* ================= VOICE BANTER (radio readback) ================= */
 // Command → clip mapping (see banter/banter.json). Plays AFTER the orders
 // are issued — radio readback follows the order; the ~1.2s delay is authentic.
-// Unmatched commands (patrol, locked, refused, unknown) stay silent;
+// Unmatched commands (locked, unknown) stay silent;
 // playback never throws.
 const BANTER={
   move:'02-red-move-center.mp3',
@@ -320,6 +320,16 @@ const BANTER={
   stop:'06-all-halt.mp3',
   defend:'07-blue-defend.mp3',
   chain:'10-yellow-move-engage.mp3', // "move north then engage the enemy"
+  patrol_red:'11-patrol-ack-red.mp3',
+  patrol_blue:'12-patrol-ack-blue.mp3',
+  patrol_yellow:'13-patrol-ack-yellow.mp3',
+  refuse_stop:'14-refuse-stop.mp3',
+  missed:'15-mic-released.mp3',
+  refuse_attack:'18-route-blocked.mp3',
+  ev_flag_stolen:'19-flag-stolen.mp3',
+  ev_unit_down:'20-unit-down.mp3',
+  ev_flag_captured:'21-flag-captured.mp3',
+  ev_flag_dropped:'22-flag-dropped.mp3',
 };
 let banterMuted=false;
 try{banterMuted=localStorage.getItem('banterMuted')==='1';}catch(e){}
@@ -341,7 +351,17 @@ function banterKey(cmd){
     const first=cmd.cmds[0]&&cmd.cmds[0].verb;
     return first&&BANTER[first]?first:null;
   }
+  if(cmd.pattern==='patrol'){
+    const u=(cmd.units&&cmd.units[0])||'';
+    return BANTER['patrol_'+u]?'patrol_'+u:null; // red/blue/yellow have acks; green/all stay silent
+  }
   return BANTER[cmd.pattern]?cmd.pattern:null;
+}
+// Refusal readback: stop/attack refusals get their radio clip.
+function refuseBanterKey(cmd){
+  if(cmd.verb==='stop') return 'refuse_stop';
+  if(cmd.verb==='attack') return 'refuse_attack';
+  return null;
 }
 function playBanter(key){
   if(!audioUnlocked||banterMuted) return;
@@ -465,6 +485,8 @@ async function handleCommand(text){
     logEv('Jev Gate','REFUSED — '+cmd.reason,cmd.kind==='locked'?'locked verb, no guess made':cmd.kind+' guard fired','hot');
     speak('No. '+cmd.reason+'.');
     if(cmd.kind==='locked') tutorSay(`"${cmd.verb}" is still locked. Keep using the commands you have — I'll teach it soon.`,false);
+    const rk=refuseBanterKey(cmd); // radio readback for the refusal
+    if(rk) setTimeout(()=>playBanter(rk),1200);
     return;
   }
   const pl=document.getElementById('parsedLine');
@@ -585,11 +607,12 @@ function stepUnit(u,dt){
   // flag pickup / capture
   const ef=flags.enemy, pf=flags.player;
   if(u.team==='player'&&!u.hasFlag&&!ef.carrier&&dist(u,ef)<24){ef.carrier=u;u.hasFlag=true;logEv('⚑ flag','Red-team unit took THEIR flag','carry it home!','hot');speak('We have their flag! Bring it home!');}
-  if(u.team==='enemy'&&!u.hasFlag&&!pf.carrier&&dist(u,pf)<24){pf.carrier=u;u.hasFlag=true;logEv('⚑ flag','enemy took OUR flag','stop them!','hot');speak('They have our flag!');}
+  if(u.team==='enemy'&&!u.hasFlag&&!pf.carrier&&dist(u,pf)<24){pf.carrier=u;u.hasFlag=true;logEv('⚑ flag','enemy took OUR flag','stop them!','hot');speak('They have our flag!');setTimeout(()=>playBanter('ev_flag_stolen'),1200);}
   if(u.team==='player'&&u.hasFlag&&dist(u,HOME_P)<40){
     scoreYou++; ef.carrier=null;u.hasFlag=false;ef.x=HOME_E.x;ef.y=HOME_E.y;
     logEv('🏆 CAPTURE',`YOU score! ${scoreYou}–${scoreThem}`,'flag delivered home','learn');
     speak(`Capture! Score ${scoreYou} to ${scoreThem}.`);
+    setTimeout(()=>playBanter('ev_flag_captured'),1200);
     if(scoreYou>=WIN_SCORE) endGame(true);
   }
   if(u.team==='enemy'&&u.hasFlag&&dist(u,HOME_E)<40){
@@ -608,7 +631,9 @@ function kill(victim,killer){
     const f=victim.team==='player'?flags.enemy:flags.player;
     f.carrier=null;f.x=victim.x;f.y=victim.y; // dropped where they died
     logEv('💀 carrier down','flag dropped at the body','someone grab it!','hot');
+    if(victim.team==='player') setTimeout(()=>playBanter('ev_flag_dropped'),1200); // our carrier dropped THEIR flag — loose in the open
   }
+  if(victim.team==='player') setTimeout(()=>playBanter('ev_unit_down'),1200); // one of ours is down
   logEv('💥 down',`${victim.team} unit eliminated by ${killer.team}`,'respawn in 8s','');
 }
 function endGame(won){
@@ -917,6 +942,7 @@ function createVoiceCommand(opts) {
         }
         cleanupRecognition();
         setState('error', { path: 'webspeech', error: 'released-empty' });
+        setTimeout(()=>playBanter('missed'),1200); // "mic keyed with nothing on it. Say again."
         return;
       }
       if (state === 'listening') setState('idle'); // service ended the turn

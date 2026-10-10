@@ -151,6 +151,7 @@
 <footer><span>voice → quilt → game · watch the LLM calls slow down as the quilt learns your voice</span>
 <span style="margin-left:auto">HP build · keyword matching · no models · no network needed</span></footer>
 
+<script src="../radio.js"></script>
 <script>
 /* ================= CONFIG ================= */
 const ORACLE_URL = 'http://147.224.38.131:8099'; // Oracle backend (optional)
@@ -267,6 +268,15 @@ function parseCommand(text){
 /* ================= COMMAND EXECUTION ================= */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function handleCommand(text){
+  // radio discipline: the transmission itself is a hailed call. Overlong
+  // text is refused verbatim by the library — the only behavior change.
+  const tx = radioSend(text);
+  if (!tx.ok) {
+    document.getElementById('transcript').innerHTML =
+      `<span class="heard">🎙 “${text}”</span><br><span class="parsed">refused: ${tx.error}</span>`;
+    speak('Say again, short.');
+    return;
+  }
   const cmd=parseCommand(text);
   document.getElementById('transcript').innerHTML=
     `<span class="heard">🎙 “${text}”</span><br><span class="parsed">parsed: ${cmd.pattern}${cmd.place?' → '+cmd.place.name:''}</span>`;
@@ -280,6 +290,7 @@ async function handleCommand(text){
     qlight('judge',700); qlight('prism',500);
     logEv('Jev Gate','REFUSED — not in spec','unknown pattern, no guess made','hot');
     speak('Sorry, I did not understand that command.');
+    setTimeout(()=>playBanter('unknown'),1200); // "not in the flight manual... say again"
     oracleLog(text,'unknown','refused');
     return;
   }
@@ -388,6 +399,7 @@ const BANTER={
   speedup:'08-speed-up.mp3',
   slowdown:'05-slow-down-biorka.mp3',
   stop:'09-hold-position.mp3',
+  unknown:'16-unknown-command.mp3',
 };
 let banterMuted=false;
 try{banterMuted=localStorage.getItem('banterMuted')==='1';}catch(e){}
@@ -431,6 +443,45 @@ document.getElementById('banterbtn').addEventListener('click',()=>{
   renderBanterBtn();
 });
 renderBanterBtn();
+
+/* ================= RADIO DISCIPLINE (radio.js) ================= */
+// Casey's radio ladder, additive: every player command is a hailed
+// transmission pilot → tower. The readback (TTS + banter clip) is the ack,
+// and its action field is what the game did. Overlong transmissions get the
+// library's refusal verbatim ("say again, short") — the only behavior
+// change, and only for >20-word inputs. If radio.js failed to load, the
+// game runs exactly as before.
+const radioOn = (typeof radio !== 'undefined' && radio.createBus);
+const radioBus = radioOn ? radio.createBus({ onLog: (e) => {
+  try {
+    if (e.event==='tx') logEv('📻 Radio', e.kind+' → '+e.to, '“'+e.text+'”', '');
+    else if (e.event==='ack') logEv('📻 Radio', 'ack ← '+e.vessel, (e.action?e.action+' — ':'')+'“'+e.text+'”', 'local');
+    else if (e.event==='escalate') logEv('📻 Radio', 'ESCALATE → '+e.kind, 'no ack in window', 'hot');
+    else if (e.event==='actions-only') logEv('📻 Radio', 'ACTIONS-ONLY', e.safeTag, 'hot');
+    else if (e.event==='too-long') logEv('📻 Radio', 'REFUSED — say again, short', e.words+' words (cap '+e.cap+')', 'hot');
+  } catch(err) {}
+}}) : null;
+const radioPilot = radioOn ? radioBus.vessel('pilot', { ackWindow: 8000, safeTag: 'holding. standing by.' }) : null;
+const radioTower = radioOn ? radioBus.vessel('tower', { ackWindow: 8000, safeTag: 'holding. standing by.' }) : null;
+if (radioOn) radioTower.setOnMessage((msg) => { /* hail received; handleCommand drives execution */ });
+function radioSend(text){
+  return radioOn ? radioPilot.send('tower', { goal: 'player command', safe: 'hold position' }, text)
+                 : { ok: true, convId: null };
+}
+function radioAck(convId, phrase, action){
+  if (radioOn && convId) { try { radioTower.ack('pilot', convId, phrase, action); } catch(e){} }
+}
+function radioAckPhrase(cmd){
+  switch(cmd.action){
+    case 'flyto': return 'roger, flying to '+cmd.place.name;
+    case 'turn': return 'roger, banking '+(cmd.dir<0?'left':'right');
+    case 'speed': return 'roger, '+(cmd.d>0?'throttle up':'throttle down');
+    case 'stop': return 'roger, holding';
+    case 'takeoff': return 'roger, taking off';
+    case 'land': return 'roger, landing';
+    default: return 'roger';
+  }
+}
 
 /* ================= GAME LOOP ================= */
 const cv=document.getElementById('map'), ctx=cv.getContext('2d');

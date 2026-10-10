@@ -392,6 +392,7 @@ async function handleCommand(text){
     logEv('Jev Gate','REFUSED — not in spec','unknown pattern, no guess made','hot');
     qlight('negmine',600);
     speak('Sorry, I did not understand that command.');
+    setTimeout(()=>playBanter('unknown'),1200); // "not in the flight manual... say again"
     oracleLog(text,'unknown','refused');
     return;
   }
@@ -502,6 +503,7 @@ const BANTER={
   speedup:'08-speed-up.mp3',
   slowdown:'05-slow-down-biorka.mp3',
   stop:'09-hold-position.mp3',
+  unknown:'16-unknown-command.mp3',
 };
 let banterMuted=false;
 try{banterMuted=localStorage.getItem('banterMuted')==='1';}catch(e){}
