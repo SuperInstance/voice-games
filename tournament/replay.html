@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replay — The Arena</title>
+<style>
+  :root { --bg:#0c1016; --panel:#141a24; --line:#232c3a; --ink:#e8e4da; --dim:#9aa3b2;
+          --a:#ff5d49; --b:#35c6b8; --amber:#f2b14e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; padding:16px; }
+  a { color:var(--amber); }
+  .crumbs { font-size:14px; margin:6px 0 12px; }
+  .crumbs a { text-decoration:none; }
+  h1 { margin:4px 0 2px; font-size:26px; letter-spacing:.3px; }
+  .meta { color:var(--dim); font-size:13px; margin:0 0 12px; }
+  canvas { width:100%; display:block; border:1px solid var(--line); border-radius:10px; background:#0e131b; }
+  .controls { display:flex; gap:10px; align-items:center; margin:12px 0; flex-wrap:wrap; }
+  .controls button { background:var(--amber); border:0; border-radius:8px; color:#1a1206;
+                     font-size:16px; font-weight:700; padding:8px 16px; cursor:pointer; }
+  .controls select { background:var(--panel); color:var(--ink); border:1px solid var(--line);
+                     border-radius:8px; padding:8px; font-size:14px; }
+  #scrub { flex:1 1 200px; accent-color:var(--amber); }
+  #clock { color:var(--dim); font-size:13px; font-variant-numeric:tabular-nums; }
+  .hud { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .card .who { font-weight:700; font-size:14px; }
+  .card .score { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .card .calls { color:var(--dim); font-size:12.5px; margin-top:4px; }
+  #cardA .who { color:var(--a); } #cardB .who { color:var(--b); }
+  #lastCall { grid-column:1 / -1; color:var(--dim); font-size:13.5px; }
+  #lastCall b { color:var(--ink); font-weight:600; }
+  .note { color:var(--dim); font-size:13px; margin-top:14px; }
+  #missing { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+             padding:28px 22px; text-align:center; }
+  #missing p { color:var(--dim); }
+  #err { color:var(--a); font-size:14px; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="crumbs"><a href="index.html">&larr; back to the Arena</a></p>
+
+  <div id="missing" hidden>
+    <h1>No replay picked</h1>
+    <p>The archives are that way &mdash; every match with a recording on file links straight to its replay.</p>
+    <p><a href="index.html">Take me to the Arena &rarr;</a></p>
+  </div>
+
+  <div id="viewer" hidden>
+    <h1 id="title">replay</h1>
+    <p class="meta" id="meta"></p>
+    <canvas id="cv"></canvas>
+    <div class="controls">
+      <button id="btnPlay" aria-label="play or pause">&#10074;&#10074;</button>
+      <input type="range" id="scrub" min="0" max="0" step="1" value="0" aria-label="scrub through snapshots">
+      <select id="speed" aria-label="playback speed">
+        <option value="0.25">0.25&times;</option>
+        <option value="0.5">0.5&times;</option>
+        <option value="1" selected>1&times;</option>
+        <option value="2">2&times;</option>
+        <option value="4">4&times;</option>
+      </select>
+      <span id="clock"></span>
+    </div>
+    <div class="hud">
+      <div class="card" id="cardA">
+        <div class="who" id="whoA">A</div>
+        <div class="score" id="scoreA">0</div>
+        <div class="calls" id="callsA"></div>
+      </div>
+      <div class="card" id="cardB">
+        <div class="who" id="whoB">B</div>
+        <div class="score" id="scoreB">0</div>
+        <div class="calls" id="callsB"></div>
+      </div>
+      <div class="card" id="lastCall"><b>latest orders:</b> <span id="lastCallText">—</span></div>
+    </div>
+    <p class="note">Units glide between sparse keyframes; scores and flags step when the log says so. Call budgets tick as the strategists spend them.</p>
+    <p id="err"></p>
+  </div>
+</div>
+
+<script>
+/* ArenaReplay — shared canvas renderer for color-squad tournament replays.
+ *
+ * Written once, inlined into replay.html and mosaic.html at build time by
+ * build.sh, so the two pages can never drift apart. Works from the trace
+ * alone: interpolates unit positions between sparse keyframes, steps scores
+ * discretely, and ticks call-budget counters from meta.sides.*.callLog.
+ *
+ * Usage:
+ *   var v = ArenaReplay(canvas);
+ *   v.load(replayJson);            // {meta, trace}
+ *   v.setSpeed(1); v.setPlaying(true);
+ *   // per frame:
+ *   v.advance(dtMs);               // moves the clock when playing
+ *   var info = v.draw();           // renders + returns HUD info
+ */
+(function (global) {
+'use strict';
+
+var FW = 900, FH = 650;          // game field size (ticks are in this space)
+var TICKS_PER_SEC = 60;          // 24000 ticks == 400 s of game time
+var TEAM_A = '#ff5d49';          // ember red
+var TEAM_B = '#35c6b8';          // teal
+
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function lerp(a, b, f) { return a + (b - a) * f; }
+
+function ArenaReplay(canvas) {
+  var ctx = canvas.getContext('2d');
+  var replay = null, trace = [], maxTick = 0;
+  var callA = [], callB = [];
+  var nameA = 'A', nameB = 'B';
+  var budgetA = 0, smartBudgetA = 0, budgetB = 0, smartBudgetB = 0;
+  var curTick = 0, playing = false, speed = 1, loop = false;
+  var lastW = 0;
+
+  function fit() {
+    var w = canvas.clientWidth || 640;
+    if (Math.abs(w - lastW) < 1 && canvas.width > 0) return;
+    lastW = w;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(w * dpr));
+    canvas.height = Math.max(1, Math.round(w * FH / FW * dpr));
+  }
+
+  function load(r) {
+    replay = r || null;
+    trace = (r && r.trace) || [];
+    maxTick = trace.length ? trace[trace.length - 1].t : 0;
+    var m = (r && r.meta) || {}, sides = m.sides || {};
+    var A = sides.A || {}, B = sides.B || {};
+    nameA = A.strategy || 'A'; nameB = B.strategy || 'B';
+    callA = A.callLog || []; callB = B.callLog || [];
+    budgetA = A.budget || 0; smartBudgetA = A.smartBudget || 0;
+    budgetB = B.budget || 0; smartBudgetB = B.smartBudget || 0;
+    curTick = 0; playing = false;
+    fit();
+  }
+
+  // Bracketing keyframes for a tick; scores/hp/flags step discretely off `a`.
+  function bracket(tick) {
+    if (!trace.length) return null;
+    if (tick <= trace[0].t) return { a: trace[0], b: trace[0], f: 0, i: 0 };
+    for (var i = 0; i < trace.length - 1; i++) {
+      if (tick < trace[i + 1].t) {
+        var span = trace[i + 1].t - trace[i].t;
+        return { a: trace[i], b: trace[i + 1], f: span > 0 ? (tick - trace[i].t) / span : 0, i: i };
+      }
+    }
+    var last = trace[trace.length - 1];
+    return { a: last, b: last, f: 0, i: trace.length - 1 };
+  }
+
+  function callsUsed(log, tick) {
+    var cheap = 0, smart = 0, last = null;
+    for (var i = 0; i < log.length; i++) {
+      var e = log[i];
+      if (e.tick <= tick) {
+        if (e.tier === 'smart') smart++; else cheap++;
+        last = e;
+      }
+    }
+    return { cheap: cheap, smart: smart, last: last };
+  }
+
+  function drawField() {
+    var sx = canvas.width / FW, sy = canvas.height / FH;
+    ctx.save();
+    ctx.scale(sx, sy);
+    // felt
+    var g = ctx.createLinearGradient(0, 0, 0, FH);
+    g.addColorStop(0, '#141a24'); g.addColorStop(1, '#0e131b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, FW, FH);
+    // half tints
+    ctx.fillStyle = 'rgba(255,93,73,0.055)'; ctx.fillRect(0, 0, FW / 2, FH);
+    ctx.fillStyle = 'rgba(53,198,184,0.055)'; ctx.fillRect(FW / 2, 0, FW, FH);
+    // midfield
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 2;
+    ctx.setLineDash([14, 12]);
+    ctx.beginPath(); ctx.moveTo(FW / 2, 20); ctx.lineTo(FW / 2, FH - 20); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(FW / 2, FH / 2, 70, 0, Math.PI * 2); ctx.stroke();
+    // flag home zones
+    ctx.fillStyle = 'rgba(255,93,73,0.10)';
+    ctx.fillRect(60, 295, 60, 60);
+    ctx.fillStyle = 'rgba(53,198,184,0.10)';
+    ctx.fillRect(FW - 120, 295, 60, 60);
+    ctx.restore();
+    return { sx: sx, sy: sy };
+  }
+
+  function drawFlag(x, y, color, carried, s) {
+    ctx.save(); ctx.scale(s.sx, s.sy);
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 26); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(x, y - 26); ctx.lineTo(x + 18, y - 20); ctx.lineTo(x, y - 14); ctx.closePath(); ctx.fill();
+    if (carried) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, y - 6, 20, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawUnit(u0, u1, f, color, dimColor) {
+    var x = lerp(u0[0], u1[0], f), y = lerp(u0[1], u1[1], f);
+    var hp = u0[2], respawning = u0[5] === 1, hasFlag = u0[4] === 1;
+    ctx.save(); ctx.translate(x, y);
+    if (respawning) ctx.globalAlpha = 0.32;
+    // body
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0.3, Math.PI * 2 - 0.3); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.stroke();
+    // hp bar
+    var w = 26, frac = clamp(hp / 100, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(-w / 2, 14, w, 4);
+    ctx.fillStyle = frac > 0.5 ? '#8fe388' : (frac > 0.25 ? '#f2c14e' : '#e2574c');
+    ctx.fillRect(-w / 2, 14, w * frac, 4);
+    if (hasFlag) {
+      ctx.fillStyle = '#ffd76a';
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, -8); ctx.lineTo(0, -4); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    return { x: x, y: y };
+  }
+
+  function tag(text, x, y, color, align) {
+    ctx.save();
+    ctx.font = '600 15px system-ui, sans-serif';
+    ctx.textAlign = align || 'left'; ctx.textBaseline = 'top';
+    var wpx = ctx.measureText(text).width;
+    var px = align === 'right' ? x - wpx - 16 : x + 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    var bx = align === 'right' ? x - wpx - 20 : x + 4;
+    ctx.fillRect(bx, y - 4, wpx + 12, 26);
+    ctx.fillStyle = color;
+    ctx.fillText(text, px, y);
+    ctx.restore();
+  }
+
+  function draw() {
+    fit();
+    if (!trace.length) {
+      ctx.fillStyle = '#0e131b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return null;
+    }
+    var s = drawField();
+    ctx.save(); ctx.scale(s.sx, s.sy);
+    var br = bracket(curTick), a = br.a, b = br.b, f = br.f;
+
+    // flags: f = [fax, fay, carrierA|null, fbx, fby, carrierB|null]
+    var ff = a.f || [90, 325, null, 810, 325, null];
+    var posA = null, posB = null;
+    var units = [];
+    for (var i = 0; i < 8; i++) {
+      var u0 = a.u[i], u1 = (b.u && b.u[i]) ? b.u[i] : u0;
+      var color = i < 4 ? TEAM_A : TEAM_B;
+      var p = drawUnit(u0, u1, f, color, color);
+      units.push(p);
+      if (i === 0) posA = p; // placeholder, replaced below properly
+    }
+    // carried flags ride their carrier's interpolated position
+    var cA = ff[2], cB = ff[5];
+    if (cA !== null && cA !== undefined && units[cA]) drawFlag(units[cA].x, units[cA].y - 10, TEAM_A, true, s);
+    else drawFlag(ff[0], ff[1], TEAM_A, false, s);
+    if (cB !== null && cB !== undefined && units[cB]) drawFlag(units[cB].x, units[cB].y - 10, TEAM_B, true, s);
+    else drawFlag(ff[3], ff[4], TEAM_B, false, s);
+
+    tag('A · ' + nameA, 12, 10, TEAM_A, 'left');
+    tag('B · ' + nameB, FW - 12, 10, TEAM_B, 'right');
+    ctx.restore();
+
+    var ca = callsUsed(callA, curTick), cb = callsUsed(callB, curTick);
+    var latest = null;
+    if (ca.last && (!cb.last || ca.last.tick >= cb.last.tick)) latest = { side: 'A', e: ca.last };
+    else if (cb.last) latest = { side: 'B', e: cb.last };
+
+    return {
+      tick: Math.round(curTick), maxTick: maxTick,
+      snapIndex: br.i, snapCount: trace.length,
+      scoreA: a.sa, scoreB: a.sb,
+      cheapA: ca.cheap, smartA: ca.smart, lastA: ca.last,
+      cheapB: cb.cheap, smartB: cb.smart, lastB: cb.last,
+      budgetA: budgetA, smartBudgetA: smartBudgetA,
+      budgetB: budgetB, smartBudgetB: smartBudgetB,
+      nameA: nameA, nameB: nameB,
+      latest: latest,
+      finished: curTick >= maxTick
+    };
+  }
+
+  function advance(dtMs) {
+    if (!playing || !trace.length) return;
+    curTick += dtMs * speed * TICKS_PER_SEC / 1000;
+    if (curTick >= maxTick) {
+      if (loop) { curTick = 0; }
+      else { curTick = maxTick; playing = false; }
+    }
+  }
+
+  return {
+    load: load,
+    draw: draw,
+    advance: advance,
+    setPlaying: function (b) { playing = !!b; if (b && curTick >= maxTick) curTick = 0; },
+    isPlaying: function () { return playing; },
+    setSpeed: function (x) { speed = x; },
+    getSpeed: function () { return speed; },
+    setLoop: function (b) { loop = !!b; },
+    seekTick: function (t) { curTick = clamp(t, 0, maxTick); },
+    seekSnap: function (i) { i = clamp(Math.round(i), 0, trace.length - 1); curTick = trace[i].t; },
+    getTick: function () { return curTick; },
+    getMaxTick: function () { return maxTick; },
+    getSnapCount: function () { return trace.length; },
+    snapTick: function (i) { return trace[clamp(Math.round(i), 0, trace.length - 1)].t; },
+    getNames: function () { return { a: nameA, b: nameB }; },
+    resize: fit
+  };
+}
+
+global.ArenaReplay = ArenaReplay;
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+(function () {
+'use strict';
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) {
+  return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+var params = new URLSearchParams(location.search);
+var file = params.get('r');
+if (!file) { $('missing').hidden = false; return; }
+if (/[^a-zA-Z0-9._-]/.test(file)) { $('missing').hidden = false; return; }
+
+$('viewer').hidden = false;
+var viewer = ArenaReplay($('cv'));
+var lastFrame = 0;
+
+function fmtClock(tick, max) {
+  function mmss(t) { var s = Math.floor(t / 60); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+  return mmss(tick) + ' / ' + mmss(max);
+}
+
+function paint(info) {
+  if (!info) return;
+  $('scoreA').textContent = info.scoreA;
+  $('scoreB').textContent = info.scoreB;
+  $('callsA').textContent = 'smart ' + info.smartA + '/' + info.smartBudgetA +
+    ' · cheap ' + info.cheapA + '/' + info.budgetA;
+  $('callsB').textContent = 'smart ' + info.smartB + '/' + info.smartBudgetB +
+    ' · cheap ' + info.cheapB + '/' + info.budgetB;
+  $('lastCallText').textContent = info.latest
+    ? ('(' + info.latest.side + ', ' + info.latest.e.tier + ') ' + info.latest.e.note)
+    : '— nothing ordered yet —';
+  var scrub = $('scrub');
+  if (document.activeElement !== scrub) scrub.value = info.snapIndex;
+  $('clock').textContent = fmtClock(info.tick, info.maxTick);
+  $('btnPlay').innerHTML = viewer.isPlaying() ? '&#10074;&#10074;' : '&#9654;';
+}
+
+function loop(ts) {
+  if (lastFrame) viewer.advance(ts - lastFrame);
+  lastFrame = ts;
+  paint(viewer.draw());
+  if (viewer.isPlaying() || true) requestAnimationFrame(loop);
+}
+
+fetch('replays/' + file).then(function (r) {
+  if (!r.ok) throw new Error('replay file not found (' + r.status + ')');
+  return r.json();
+}).then(function (replay) {
+  viewer.load(replay);
+  var names = viewer.getNames();
+  var seed = (replay.meta && replay.meta.seed) || '?';
+  $('title').textContent = names.a + '  vs  ' + names.b;
+  document.title = names.a + ' vs ' + names.b + ' — replay';
+  $('meta').textContent = 'seed ' + seed + ' · ' + viewer.getSnapCount() +
+    ' keyframes · ' + file;
+  $('whoA').textContent = 'A · ' + names.a;
+  $('whoB').textContent = 'B · ' + names.b;
+  var scrub = $('scrub');
+  scrub.max = Math.max(0, viewer.getSnapCount() - 1);
+  scrub.addEventListener('input', function () {
+    viewer.seekSnap(parseInt(scrub.value, 10));
+    paint(viewer.draw());
+  });
+  $('btnPlay').addEventListener('click', function () {
+    viewer.setPlaying(!viewer.isPlaying());
+    paint(viewer.draw());
+  });
+  $('speed').addEventListener('change', function (e) {
+    viewer.setSpeed(parseFloat(e.target.value));
+  });
+  window.addEventListener('resize', function () { viewer.resize(); paint(viewer.draw()); });
+  viewer.setSpeed(1);
+  viewer.setPlaying(true);
+  requestAnimationFrame(loop);
+}).catch(function (err) {
+  $('err').textContent = 'Could not load that replay: ' + err.message +
+    ' — the scribes may still be writing it. Try the Arena for another.';
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mosaic — The Arena</title>
+<style>
+  :root { --bg:#0c1016; --panel:#141a24; --line:#232c3a; --ink:#e8e4da; --dim:#9aa3b2;
+          --a:#ff5d49; --b:#35c6b8; --amber:#f2b14e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1200px; margin:0 auto; padding:16px; }
+  a { color:var(--amber); }
+  .crumbs { font-size:14px; margin:6px 0 12px; }
+  .crumbs a { text-decoration:none; }
+  h1 { margin:4px 0 2px; font-size:26px; }
+  .sub { color:var(--dim); font-size:13.5px; margin:0 0 12px; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin:0 0 14px; flex-wrap:wrap; }
+  .toolbar button { background:var(--amber); border:0; border-radius:8px; color:#1a1206;
+                    font-size:15px; font-weight:700; padding:8px 16px; cursor:pointer; }
+  .toolbar span { color:var(--dim); font-size:13px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  .cell { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+          padding:10px; }
+  .cell canvas { width:100%; display:block; border-radius:8px; background:#0e131b; cursor:pointer; }
+  .cellhead { display:flex; justify-content:space-between; align-items:baseline;
+              gap:8px; margin:2px 2px 8px; }
+  .cellhead .teams { font-size:14px; font-weight:600; }
+  .cellhead .teams .ta { color:var(--a); } .cellhead .teams .tb { color:var(--b); }
+  .cellhead .cscore { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .cellhead a.watch { font-size:12.5px; text-decoration:none; white-space:nowrap; }
+  .cell .paused { opacity:.75; }
+  #status { color:var(--dim); font-size:13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="crumbs"><a href="index.html">&larr; back to the Arena</a></p>
+  <h1>The Mosaic</h1>
+  <p class="sub">Four bouts at once, at half speed &mdash; the whole tournament in one glance. Tap a panel to pause it.</p>
+  <div class="toolbar">
+    <button id="btnShuffle">&#10227; shuffle</button>
+    <span id="status">warming up…</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+/* ArenaReplay — shared canvas renderer for color-squad tournament replays.
+ *
+ * Written once, inlined into replay.html and mosaic.html at build time by
+ * build.sh, so the two pages can never drift apart. Works from the trace
+ * alone: interpolates unit positions between sparse keyframes, steps scores
+ * discretely, and ticks call-budget counters from meta.sides.*.callLog.
+ *
+ * Usage:
+ *   var v = ArenaReplay(canvas);
+ *   v.load(replayJson);            // {meta, trace}
+ *   v.setSpeed(1); v.setPlaying(true);
+ *   // per frame:
+ *   v.advance(dtMs);               // moves the clock when playing
+ *   var info = v.draw();           // renders + returns HUD info
+ */
+(function (global) {
+'use strict';
+
+var FW = 900, FH = 650;          // game field size (ticks are in this space)
+var TICKS_PER_SEC = 60;          // 24000 ticks == 400 s of game time
+var TEAM_A = '#ff5d49';          // ember red
+var TEAM_B = '#35c6b8';          // teal
+
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function lerp(a, b, f) { return a + (b - a) * f; }
+
+function ArenaReplay(canvas) {
+  var ctx = canvas.getContext('2d');
+  var replay = null, trace = [], maxTick = 0;
+  var callA = [], callB = [];
+  var nameA = 'A', nameB = 'B';
+  var budgetA = 0, smartBudgetA = 0, budgetB = 0, smartBudgetB = 0;
+  var curTick = 0, playing = false, speed = 1, loop = false;
+  var lastW = 0;
+
+  function fit() {
+    var w = canvas.clientWidth || 640;
+    if (Math.abs(w - lastW) < 1 && canvas.width > 0) return;
+    lastW = w;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(w * dpr));
+    canvas.height = Math.max(1, Math.round(w * FH / FW * dpr));
+  }
+
+  function load(r) {
+    replay = r || null;
+    trace = (r && r.trace) || [];
+    maxTick = trace.length ? trace[trace.length - 1].t : 0;
+    var m = (r && r.meta) || {}, sides = m.sides || {};
+    var A = sides.A || {}, B = sides.B || {};
+    nameA = A.strategy || 'A'; nameB = B.strategy || 'B';
+    callA = A.callLog || []; callB = B.callLog || [];
+    budgetA = A.budget || 0; smartBudgetA = A.smartBudget || 0;
+    budgetB = B.budget || 0; smartBudgetB = B.smartBudget || 0;
+    curTick = 0; playing = false;
+    fit();
+  }
+
+  // Bracketing keyframes for a tick; scores/hp/flags step discretely off `a`.
+  function bracket(tick) {
+    if (!trace.length) return null;
+    if (tick <= trace[0].t) return { a: trace[0], b: trace[0], f: 0, i: 0 };
+    for (var i = 0; i < trace.length - 1; i++) {
+      if (tick < trace[i + 1].t) {
+        var span = trace[i + 1].t - trace[i].t;
+        return { a: trace[i], b: trace[i + 1], f: span > 0 ? (tick - trace[i].t) / span : 0, i: i };
+      }
+    }
+    var last = trace[trace.length - 1];
+    return { a: last, b: last, f: 0, i: trace.length - 1 };
+  }
+
+  function callsUsed(log, tick) {
+    var cheap = 0, smart = 0, last = null;
+    for (var i = 0; i < log.length; i++) {
+      var e = log[i];
+      if (e.tick <= tick) {
+        if (e.tier === 'smart') smart++; else cheap++;
+        last = e;
+      }
+    }
+    return { cheap: cheap, smart: smart, last: last };
+  }
+
+  function drawField() {
+    var sx = canvas.width / FW, sy = canvas.height / FH;
+    ctx.save();
+    ctx.scale(sx, sy);
+    // felt
+    var g = ctx.createLinearGradient(0, 0, 0, FH);
+    g.addColorStop(0, '#141a24'); g.addColorStop(1, '#0e131b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, FW, FH);
+    // half tints
+    ctx.fillStyle = 'rgba(255,93,73,0.055)'; ctx.fillRect(0, 0, FW / 2, FH);
+    ctx.fillStyle = 'rgba(53,198,184,0.055)'; ctx.fillRect(FW / 2, 0, FW, FH);
+    // midfield
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 2;
+    ctx.setLineDash([14, 12]);
+    ctx.beginPath(); ctx.moveTo(FW / 2, 20); ctx.lineTo(FW / 2, FH - 20); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(FW / 2, FH / 2, 70, 0, Math.PI * 2); ctx.stroke();
+    // flag home zones
+    ctx.fillStyle = 'rgba(255,93,73,0.10)';
+    ctx.fillRect(60, 295, 60, 60);
+    ctx.fillStyle = 'rgba(53,198,184,0.10)';
+    ctx.fillRect(FW - 120, 295, 60, 60);
+    ctx.restore();
+    return { sx: sx, sy: sy };
+  }
+
+  function drawFlag(x, y, color, carried, s) {
+    ctx.save(); ctx.scale(s.sx, s.sy);
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 26); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(x, y - 26); ctx.lineTo(x + 18, y - 20); ctx.lineTo(x, y - 14); ctx.closePath(); ctx.fill();
+    if (carried) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, y - 6, 20, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawUnit(u0, u1, f, color, dimColor) {
+    var x = lerp(u0[0], u1[0], f), y = lerp(u0[1], u1[1], f);
+    var hp = u0[2], respawning = u0[5] === 1, hasFlag = u0[4] === 1;
+    ctx.save(); ctx.translate(x, y);
+    if (respawning) ctx.globalAlpha = 0.32;
+    // body
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0.3, Math.PI * 2 - 0.3); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.stroke();
+    // hp bar
+    var w = 26, frac = clamp(hp / 100, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(-w / 2, 14, w, 4);
+    ctx.fillStyle = frac > 0.5 ? '#8fe388' : (frac > 0.25 ? '#f2c14e' : '#e2574c');
+    ctx.fillRect(-w / 2, 14, w * frac, 4);
+    if (hasFlag) {
+      ctx.fillStyle = '#ffd76a';
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, -8); ctx.lineTo(0, -4); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    return { x: x, y: y };
+  }
+
+  function tag(text, x, y, color, align) {
+    ctx.save();
+    ctx.font = '600 15px system-ui, sans-serif';
+    ctx.textAlign = align || 'left'; ctx.textBaseline = 'top';
+    var wpx = ctx.measureText(text).width;
+    var px = align === 'right' ? x - wpx - 16 : x + 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    var bx = align === 'right' ? x - wpx - 20 : x + 4;
+    ctx.fillRect(bx, y - 4, wpx + 12, 26);
+    ctx.fillStyle = color;
+    ctx.fillText(text, px, y);
+    ctx.restore();
+  }
+
+  function draw() {
+    fit();
+    if (!trace.length) {
+      ctx.fillStyle = '#0e131b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return null;
+    }
+    var s = drawField();
+    ctx.save(); ctx.scale(s.sx, s.sy);
+    var br = bracket(curTick), a = br.a, b = br.b, f = br.f;
+
+    // flags: f = [fax, fay, carrierA|null, fbx, fby, carrierB|null]
+    var ff = a.f || [90, 325, null, 810, 325, null];
+    var posA = null, posB = null;
+    var units = [];
+    for (var i = 0; i < 8; i++) {
+      var u0 = a.u[i], u1 = (b.u && b.u[i]) ? b.u[i] : u0;
+      var color = i < 4 ? TEAM_A : TEAM_B;
+      var p = drawUnit(u0, u1, f, color, color);
+      units.push(p);
+      if (i === 0) posA = p; // placeholder, replaced below properly
+    }
+    // carried flags ride their carrier's interpolated position
+    var cA = ff[2], cB = ff[5];
+    if (cA !== null && cA !== undefined && units[cA]) drawFlag(units[cA].x, units[cA].y - 10, TEAM_A, true, s);
+    else drawFlag(ff[0], ff[1], TEAM_A, false, s);
+    if (cB !== null && cB !== undefined && units[cB]) drawFlag(units[cB].x, units[cB].y - 10, TEAM_B, true, s);
+    else drawFlag(ff[3], ff[4], TEAM_B, false, s);
+
+    tag('A · ' + nameA, 12, 10, TEAM_A, 'left');
+    tag('B · ' + nameB, FW - 12, 10, TEAM_B, 'right');
+    ctx.restore();
+
+    var ca = callsUsed(callA, curTick), cb = callsUsed(callB, curTick);
+    var latest = null;
+    if (ca.last && (!cb.last || ca.last.tick >= cb.last.tick)) latest = { side: 'A', e: ca.last };
+    else if (cb.last) latest = { side: 'B', e: cb.last };
+
+    return {
+      tick: Math.round(curTick), maxTick: maxTick,
+      snapIndex: br.i, snapCount: trace.length,
+      scoreA: a.sa, scoreB: a.sb,
+      cheapA: ca.cheap, smartA: ca.smart, lastA: ca.last,
+      cheapB: cb.cheap, smartB: cb.smart, lastB: cb.last,
+      budgetA: budgetA, smartBudgetA: smartBudgetA,
+      budgetB: budgetB, smartBudgetB: smartBudgetB,
+      nameA: nameA, nameB: nameB,
+      latest: latest,
+      finished: curTick >= maxTick
+    };
+  }
+
+  function advance(dtMs) {
+    if (!playing || !trace.length) return;
+    curTick += dtMs * speed * TICKS_PER_SEC / 1000;
+    if (curTick >= maxTick) {
+      if (loop) { curTick = 0; }
+      else { curTick = maxTick; playing = false; }
+    }
+  }
+
+  return {
+    load: load,
+    draw: draw,
+    advance: advance,
+    setPlaying: function (b) { playing = !!b; if (b && curTick >= maxTick) curTick = 0; },
+    isPlaying: function () { return playing; },
+    setSpeed: function (x) { speed = x; },
+    getSpeed: function () { return speed; },
+    setLoop: function (b) { loop = !!b; },
+    seekTick: function (t) { curTick = clamp(t, 0, maxTick); },
+    seekSnap: function (i) { i = clamp(Math.round(i), 0, trace.length - 1); curTick = trace[i].t; },
+    getTick: function () { return curTick; },
+    getMaxTick: function () { return maxTick; },
+    getSnapCount: function () { return trace.length; },
+    snapTick: function (i) { return trace[clamp(Math.round(i), 0, trace.length - 1)].t; },
+    getNames: function () { return { a: nameA, b: nameB }; },
+    resize: fit
+  };
+}
+
+global.ArenaReplay = ArenaReplay;
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+(function () {
+'use strict';
+function $(id) { return document.getElementById(id); }
+
+var cells = [];   // {viewer, canvas, elTeams, elScore, file}
+
+function pick4(files) {
+  var pool = files.slice(), out = [];
+  while (pool.length && out.length < 4) {
+    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return out;
+}
+
+function makeCell(file) {
+  var cell = document.createElement('div');
+  cell.className = 'cell';
+  var head = document.createElement('div');
+  head.className = 'cellhead';
+  var teams = document.createElement('span'); teams.className = 'teams';
+  var score = document.createElement('span'); score.className = 'cscore';
+  var watch = document.createElement('a'); watch.className = 'watch';
+  watch.href = 'replay.html?r=' + encodeURIComponent(file);
+  watch.textContent = 'full replay \u2192';
+  head.appendChild(teams); head.appendChild(score); head.appendChild(watch);
+  var canvas = document.createElement('canvas');
+  cell.appendChild(head); cell.appendChild(canvas);
+  $('grid').appendChild(cell);
+  var viewer = ArenaReplay(canvas);
+  viewer.setSpeed(0.5);
+  viewer.setLoop(true);
+  var rec = { viewer: viewer, canvas: canvas, elTeams: teams, elScore: score, elCell: cell, file: file };
+  canvas.addEventListener('click', function () {
+    viewer.setPlaying(!viewer.isPlaying());
+    cell.classList.toggle('paused', !viewer.isPlaying());
+  });
+  return rec;
+}
+
+function fillCell(rec, replay) {
+  rec.viewer.load(replay);
+  var names = rec.viewer.getNames();
+  rec.elTeams.innerHTML = '';
+  var sa = document.createElement('span'); sa.className = 'ta'; sa.textContent = names.a;
+  var vs = document.createElement('span'); vs.textContent = ' vs ';
+  var sb = document.createElement('span'); sb.className = 'tb'; sb.textContent = names.b;
+  rec.elTeams.appendChild(sa); rec.elTeams.appendChild(vs); rec.elTeams.appendChild(sb);
+  rec.viewer.setPlaying(true);
+  rec.elCell.classList.remove('paused');
+}
+
+function loadSet(files) {
+  $('status').textContent = 'loading ' + files.length + ' bouts…';
+  var jobs = files.map(function (f) {
+    return fetch('replays/' + f).then(function (r) {
+      if (!r.ok) throw new Error(f);
+      return r.json().then(function (j) { return { file: f, json: j }; });
+    });
+  });
+  Promise.all(jobs).then(function (results) {
+    $('grid').innerHTML = '';
+    cells = results.map(function (res) {
+      var rec = makeCell(res.file);
+      fillCell(rec, res.json);
+      return rec;
+    });
+    cells.forEach(function (c) { c.viewer.resize(); });
+    $('status').textContent = cells.length + ' bouts rolling at 0.5\u00d7 — tap any panel to pause it.';
+  }).catch(function () {
+    $('status').textContent = 'Some replays failed to load. Hit shuffle for a fresh draw.';
+  });
+}
+
+var allFiles = [];
+function shuffle() {
+  if (!allFiles.length) return;
+  loadSet(pick4(allFiles));
+}
+$('btnShuffle').addEventListener('click', shuffle);
+
+var last = 0;
+function loop(ts) {
+  var dt = last ? ts - last : 16;
+  last = ts;
+  cells.forEach(function (c) {
+    c.viewer.advance(dt);
+    var info = c.viewer.draw();
+    if (info) c.elScore.textContent = info.scoreA + ' – ' + info.scoreB;
+  });
+  requestAnimationFrame(loop);
+}
+
+fetch('replays/index.json').then(function (r) {
+  if (!r.ok) throw new Error('no index');
+  return r.json();
+}).then(function (files) {
+  allFiles = files.filter(function (f) { return /\.json$/.test(f); });
+  if (!allFiles.length) { $('status').textContent = 'No replays on file yet — the pit is still warming up.'; return; }
+  shuffle();
+  requestAnimationFrame(loop);
+}).catch(function () {
+  $('status').textContent = 'Could not read the replay index. The scribes may be reorganizing.';
+});
+})();
+</script>
+</body>
+</html>
