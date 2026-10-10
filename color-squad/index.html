@@ -94,6 +94,26 @@
   .idle{animation:breathe 3.2s ease-in-out infinite}
   footer{padding:6px 18px;border-top:1px solid var(--line);font-size:10.5px;color:var(--dim);
     display:flex;gap:14px}
+  /* ---- mobile layout (≤700px): map + voice/chat first, everything else below the scroll ---- */
+  @media (max-width:700px){
+    html,body{height:auto}
+    body{display:block;overflow-y:auto}
+    header{flex-wrap:wrap;gap:8px;padding:10px 12px}
+    header h1{font-size:15px;letter-spacing:2px}
+    main{display:block}
+    #gamepane{border-right:none;border-bottom:1px solid var(--line)}
+    #mapwrap{flex:none;height:54vh;min-height:280px}
+    #hud{font-size:11px;padding:6px 10px}
+    #voicebar .row{flex-wrap:wrap}
+    #ptt{flex:1 1 auto;padding:12px 10px}
+    #transcript{flex:1 1 100%;min-width:0}
+    #typed{font-size:16px}
+    #side{min-width:0;max-width:none}
+    #quiltwrap{height:240px!important}
+    #apibar .row{flex-wrap:wrap;gap:10px}
+    #log{max-height:38vh;overflow-y:auto}
+    footer{flex-wrap:wrap;gap:8px}
+  }
 </style>
 </head>
 <body>
