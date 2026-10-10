@@ -291,6 +291,7 @@ async function handleCommand(text){
     logEv('Jev Gate','REFUSED — not in spec','unknown pattern, no guess made','hot');
     speak('Sorry, I did not understand that command.');
     setTimeout(()=>playBanter('unknown'),1200); // "not in the flight manual... say again"
+    radioAck(tx.convId, 'roger', 'no action — not in spec');
     oracleLog(text,'unknown','refused');
     return;
   }
@@ -326,6 +327,7 @@ async function handleCommand(text){
 
   qlight('act',700); qlight('prism',400);
   const result=execute(cmd);
+  radioAck(tx.convId, radioAckPhrase(cmd), result); // the readback clip is the audible ack
   logEv('Act',result,'hands on the plane','hot');
   oracleLog(text,cmd.pattern,viaLLM?'llm':'local');
   // radio readback: banter plays AFTER execution
