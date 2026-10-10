@@ -854,24 +854,112 @@ function createVoiceCommand(opts) {
 }
 
 /* ---- HUD + wiring for this game ---- */
+/* === MIC-STATUS v1 (2026-10-10): loud, persistent mic-denial UX ===
+   Root cause of "press does nothing": on the reporter's devices the mic
+   permission was DENIED for the site, so recognition failed instantly with
+   `not-allowed`. The old UX showed "voice unavailable" for 3s then reverted,
+   which reads as "nothing happened". Now:
+   - mic denial (not-allowed / mic-denied / permission denied) raises a LOUD,
+     persistent banner with unblock instructions. It stays until the mic works
+     or the user dismisses it -- never auto-reverts.
+   - at boot we query navigator.permissions for the microphone state and show
+     it in the HUD chip: ready / tap-to-allow / blocked. Blocked-at-boot shows
+     the banner immediately, before the first press.
+   - other errors (no-speech, aborted, network, transcribe) get short
+     human-readable button messages that still auto-revert. */
 const ptt=document.getElementById('ptt');
-let voiceHintTimer=null;
+const voicebarEl=document.getElementById('voicebar');
+let micBanner=null, micChip=null, micDenied=false, micPerm='unknown', voiceHintTimer=null;
+function micBannerEl(){
+  if(micBanner) return micBanner;
+  micBanner=document.createElement('div');
+  micBanner.id='micbanner';
+  micBanner.style.cssText='display:none;margin:0 0 8px;padding:10px 12px;border-radius:10px;'
+    +'background:#3a1420;border:2px solid #ff5d7a;color:#ffdfe6;font-size:13px;line-height:1.5;';
+  micBanner.innerHTML='<span>\uD83D\uDD07 <b>Microphone is blocked for this site.</b><br>'
+    +'Tap the <b>lock / tune icon</b> in the address bar \u2192 <b>Site settings</b> \u2192 '
+    +'<b>Microphone</b> \u2192 <b>Allow</b>, then press <b>HOLD TO TALK</b> again.</span>'
+    +'<button id="micbanner-x" title="dismiss" style="float:right;background:none;border:none;'
+    +'color:#ffdfe6;font-size:15px;cursor:pointer;padding:0 0 0 12px">\u2715</button>';
+  if(voicebarEl) voicebarEl.insertBefore(micBanner, voicebarEl.firstChild);
+  const x=document.getElementById('micbanner-x');
+  if(x) x.addEventListener('click',function(){ hideMicBanner(); });
+  return micBanner;
+}
+function showMicBanner(reason){
+  micDenied=true;
+  const b=micBannerEl(); b.style.display='block';
+  updateMicChip();
+  try{ logEv('mic','microphone blocked: '+(reason||'permission denied'),
+    'address bar \u2192 lock/tune icon \u2192 Site settings \u2192 Microphone \u2192 Allow','hot'); }catch(e){}
+}
+function hideMicBanner(){ micDenied=false; if(micBanner) micBanner.style.display='none'; updateMicChip(); }
+function micChipEl(){
+  if(micChip) return micChip;
+  micChip=document.createElement('span');
+  micChip.id='micstat';
+  micChip.style.cssText='font-size:11px;color:#9aa;white-space:nowrap;';
+  if(ptt && ptt.parentNode) ptt.parentNode.insertBefore(micChip, ptt.nextSibling);
+  return micChip;
+}
+function updateMicChip(msg){
+  const c=micChipEl(); if(!c) return;
+  if(typeof msg==='string'){ c.textContent=msg; c.style.color=''; return; }
+  if(micDenied||micPerm==='denied'){ c.textContent='\uD83C\uDF99 mic: blocked'; c.style.color='#ff5d7a'; }
+  else if(micPerm==='granted'){ c.textContent='\uD83C\uDF99 mic: ready'; c.style.color='#5df08a'; }
+  else if(micPerm==='prompt'){ c.textContent='\uD83C\uDF99 mic: tap to allow'; c.style.color='#f5b942'; }
+  else { c.textContent=''; }
+}
+function probeMicPermission(){
+  try{
+    if(!(navigator.permissions && navigator.permissions.query)) return;
+    navigator.permissions.query({name:'microphone'}).then(function(ps){
+      micPerm=ps.state; updateMicChip();
+      if(ps.state==='denied') showMicBanner('denied at page load');
+      if(typeof ps.onchange!=='undefined'){
+        ps.onchange=function(){
+          micPerm=ps.state; updateMicChip();
+          if(ps.state==='denied') showMicBanner('revoked in site settings');
+        };
+      }
+    }).catch(function(){});
+  }catch(e){}
+}
+function micErrInfo(detail){
+  const e=String((detail&&detail.error)||'');
+  const low=e.toLowerCase();
+  if(low.indexOf('not-allowed')>=0||low.indexOf('mic-denied')===0||
+     /notallowed|permission denied|permissiondenied/.test(low))
+    return {blocked:true, msg:'\uD83C\uDF99 mic blocked \u2014 see red banner above'};
+  if(low.indexOf('no-speech')>=0) return {msg:'\uD83C\uDF99 didn\u2019t hear anything \u2014 speak up'};
+  if(low.indexOf('aborted')>=0) return {msg:'\uD83C\uDF99 released early'};
+  if(low.indexOf('network')>=0) return {msg:'\uD83C\uDF99 speech service unreachable'};
+  if(low.indexOf('transcribe')===0) return {msg:'\uD83C\uDF99 transcription failed \u2014 retry'};
+  return {msg:'\uD83C\uDF99 voice hiccup \u2014 try again'};
+}
 function setPttVoice(s,detail){
   clearTimeout(voiceHintTimer);
   try{
-    if(s==='listening'){ ptt.classList.add('listening'); ptt.textContent='🎙 listening'; }
-    else if(s==='transcribing'){ ptt.classList.add('listening'); ptt.textContent='📻 transcribing'; }
-    else if(s==='error'){ ptt.classList.remove('listening'); ptt.textContent='🎙 voice unavailable — type below';
-      voiceHintTimer=setTimeout(()=>{ ptt.textContent='🎙 HOLD TO TALK'; },3000); }
-    else { ptt.classList.remove('listening'); ptt.textContent='🎙 HOLD TO TALK'; }
+    if(s==='listening'){ ptt.classList.add('listening'); ptt.textContent='\uD83C\uDF99 listening'; updateMicChip('\uD83C\uDF99 mic: listening\u2026'); }
+    else if(s==='transcribing'){ ptt.classList.add('listening'); ptt.textContent='\uD83D\uDCFB transcribing'; updateMicChip('\uD83C\uDF99 mic: transcribing\u2026'); }
+    else if(s==='error'){
+      ptt.classList.remove('listening');
+      const info=micErrInfo(detail);
+      ptt.textContent=info.msg;
+      if(info.blocked){ showMicBanner(info.msg); }
+      else { voiceHintTimer=setTimeout(function(){ ptt.textContent='\uD83C\uDF99 HOLD TO TALK'; updateMicChip(); },3000); }
+    }
+    else { ptt.classList.remove('listening'); ptt.textContent='\uD83C\uDF99 HOLD TO TALK'; updateMicChip(); }
   }catch(e){/* HUD must never break voice */}
 }
+
 const voice=createVoiceCommand({
   transcribeUrl:STT_TRANSCRIBE_URL,
-  onCommand:function(text){ try{ handleCommand(text); }catch(e){/* unmatched commands fail soft */} },
+  onCommand:function(text){ try{ hideMicBanner(); handleCommand(text); }catch(e){/* unmatched commands fail soft */} },
   onState:function(s,detail){
     setPttVoice(s,detail);
-    if(s==='error'){ try{ logEv('mic','voice error: '+((detail&&detail.error)||'mic unavailable'),'type the command in the text box instead','hot'); }catch(e){} }
+    // mic-denied errors are already logged loudly by showMicBanner(); don't double-log.
+    if(s==='error'&&!micDenied){ try{ logEv('mic','voice error: '+((detail&&detail.error)||'mic unavailable'),'type the command in the text box instead','hot'); }catch(e){} }
   },
   preferBrowserStt:true,
   maxClipSeconds:6,
@@ -880,6 +968,7 @@ window.stopListen=function(){ voice.stop(); };
 ptt.addEventListener('pointerdown',function(e){ e.preventDefault(); unlockAudio(); voice.start(); });
 ptt.addEventListener('pointerup',function(){ voice.stop(); });
 ptt.addEventListener('pointerleave',function(){ if(voice.isListening()) voice.stop(); });
+probeMicPermission(); // boot-time mic permission status in the HUD
 document.getElementById('typed').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.value.trim()){ unlockAudio(); handleCommand(e.target.value.trim()); e.target.value=''; }
 });
@@ -894,6 +983,12 @@ document.getElementById('sleepbtn').addEventListener('click',()=>{
 
 /* ================= ORACLE (optional backend) ================= */
 async function checkOracle(){
+  if(location.protocol==='https:'&&ORACLE_URL.indexOf('http://')===0){
+    // Mixed content: a plain-http backend is unreachable from an https page.
+    // Skip the fetch entirely (no console noise); the game is fully local.
+    document.getElementById('oracleText').textContent='oracle: local only';
+    return;
+  }
   try{
     const r=await fetch(ORACLE_URL+'/api/health',{signal:AbortSignal.timeout(2500)});
     if(r.ok){ oracleOn=true;
