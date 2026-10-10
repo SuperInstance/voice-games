@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITKA SKIES — voice-commanded flight · ProArt build</title>
+<style>
+  :root{
+    --bg:#04090f; --ink:#d7e6f2; --dim:#7d93a8;
+    --body:#39d0d8; --mind:#5df08a; --memory:#a78bfa; --dream:#f5b942;
+    --prism:#ff7ad9; --panel:#0a1420; --line:rgba(125,147,168,.25);
+    --good:#5df08a; --warn:#f5b942; --bad:#ff7ad9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    display:flex;flex-direction:column; overflow:hidden;
+  }
+  header{
+    padding:10px 18px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:14px;
+  }
+  header h1{font-size:18px;letter-spacing:3px}
+  header h1 .s{color:var(--body)}
+  .vessel{font-size:11px;border:1px solid var(--body);color:var(--body);
+    padding:3px 10px;border-radius:20px}
+  .oracle-link{margin-left:auto;font-size:11px;color:var(--dim)}
+  .oracle-link .dot{display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:#555;margin-right:6px}
+  .oracle-link.on .dot{background:var(--good);box-shadow:0 0 8px var(--good)}
+  main{flex:1;display:flex;min-height:0}
+  /* ---- left: game ---- */
+  #gamepane{flex:1.25;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line)}
+  #mapwrap{flex:1;position:relative;min-height:0;background:#03141f}
+  #map{position:absolute;inset:0;width:100%;height:100%}
+  #hud{position:absolute;top:10px;left:12px;font-size:12px;line-height:1.7;
+    background:rgba(4,9,15,.75);padding:8px 12px;border-radius:8px;border:1px solid var(--line)}
+  #hud b{color:var(--body)}
+  #voicebar{padding:12px 14px;border-top:1px solid var(--line);background:var(--panel)}
+  #voicebar .row{display:flex;gap:8px;align-items:center}
+  #ptt{
+    font:inherit;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;
+    border:2px solid var(--prism);background:#1a0f1e;color:#fff;padding:12px 22px;
+    user-select:none;-webkit-user-select:none;touch-action:none;
+  }
+  #ptt.listening{background:#3a1c4d;box-shadow:0 0 22px rgba(255,122,217,.5)}
+  #banterbtn{
+    font:inherit;font-size:12px;cursor:pointer;border-radius:10px;white-space:nowrap;
+    border:1px solid var(--mind);background:transparent;color:var(--ink);padding:12px 14px;
+  }
+  #banterbtn:hover{background:rgba(93,240,138,.12)}
+  #transcript{flex:1;background:#060d16;border:1px solid var(--line);color:var(--ink);
+    padding:10px 12px;border-radius:8px;font:inherit;font-size:13px;min-height:44px}
+  #transcript .heard{color:var(--prism)}
+  #transcript .parsed{color:var(--dim);font-size:11px}
+  #typed{width:100%;margin-top:8px;background:#060d16;border:1px solid var(--line);
+    color:var(--ink);padding:8px 10px;border-radius:8px;font:inherit;font-size:12px}
+  .cmdhelp{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.7}
+  .cmdhelp b{color:var(--ink)}
+  /* ---- right: quilt + stats ---- */
+  #side{flex:1;display:flex;flex-direction:column;min-width:340px;max-width:460px;min-height:0}
+  #quiltwrap{height:300px;position:relative;border-bottom:1px solid var(--line)}
+  #quilt{width:100%;height:100%;display:block}
+  #apibar{padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px}
+  #apibar .big{font-size:22px;font-weight:700}
+  #apibar .row{display:flex;gap:14px;align-items:baseline;margin-top:4px}
+  #learnlist{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.8}
+  #learnlist .pat{display:inline-block;margin-right:10px}
+  #learnlist .yes{color:var(--good)} #learnlist .no{color:var(--warn)}
+  #sleepbtn{margin-top:8px;font:inherit;font-size:12px;cursor:pointer;border-radius:8px;
+    border:1px solid var(--dream);background:transparent;color:var(--dream);padding:8px 14px}
+  #sleepbtn:hover{background:rgba(245,185,66,.12)}
+  #log{flex:1;overflow-y:auto;padding:12px 14px;font-size:11.5px;line-height:1.5;min-height:0}
+  #log .ev{margin-bottom:8px;padding:7px 10px;border-left:2px solid var(--line);
+    background:rgba(255,255,255,.015);border-radius:0 6px 6px 0;animation:slidein .25s}
+  #log .ev .t{color:var(--dim);font-size:10px}
+  #log .ev.hot{border-left-color:var(--prism)}
+  #log .ev.learn{border-left-color:var(--warn)}
+  #log .ev.local{border-left-color:var(--good)}
+  @keyframes slidein{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+  .cell{cursor:pointer}.cell rect{transition:all .2s}.cell text{pointer-events:none}
+  .cell.active rect{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 0 12px currentColor)}
+  @keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+  .idle{animation:breathe 3.2s ease-in-out infinite}
+  footer{padding:6px 18px;border-top:1px solid var(--line);font-size:10.5px;color:var(--dim);
+    display:flex;gap:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="s">S</span>ITKA SKIES</h1>
+  <span class="vessel" style="border-color:var(--memory);color:var(--memory)">ProArt · RTX 4050 · GPU hooks</span>
+  <span class="oracle-link" id="oracleStatus"><span class="dot"></span><span id="oracleText">oracle: checking…</span></span>
+</header>
+<main>
+  <div id="gamepane">
+    <div id="mapwrap">
+      <canvas id="map"></canvas>
+      <div id="hud">ALT <b id="h-alt">—</b> · HDG <b id="h-hdg">—</b> · SPD <b id="h-spd">—</b><br>POS <b id="h-pos">—</b> · DEST <b id="h-dest">—</b></div>
+    </div>
+    <div id="voicebar">
+      <div class="row">
+        <button id="ptt">🎙 HOLD TO TALK</button>
+        <button id="banterbtn" title="toggle radio banter readback">📻 banter on</button>
+        <div id="transcript"><span style="color:var(--dim)">press &amp; hold, or type below…</span></div>
+      </div>
+      <input id="typed" placeholder='type a command + Enter — e.g. "fly to cape edgecumbe"' spellcheck="false">
+      <div class="cmdhelp">
+        <b>fly to</b> cape edgecumbe · sitka · biorka · goddard &nbsp;|&nbsp;
+        <b>turn</b> left / right &nbsp;|&nbsp; <b>speed up</b> / <b>slow down</b> &nbsp;|&nbsp;
+        <b>stop</b> &nbsp;|&nbsp; <b>take off</b> / <b>land</b> &nbsp;|&nbsp; <b>where am i</b> / <b>status</b>
+      </div>
+    </div>
+  </div>
+  <div id="side">
+    <div id="quiltwrap" style="height:380px"><svg id="quilt" viewBox="0 0 440 360" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div id="apibar">
+      <div class="row">
+        <div><span class="big" id="apiCount" style="color:var(--warn)">0</span><div style="color:var(--dim);font-size:10px">LLM calls made</div></div>
+        <div><span class="big" id="localCount" style="color:var(--good)">0</span><div style="color:var(--dim);font-size:10px">local reflexes</div></div>
+        <div style="margin-left:auto;text-align:right"><span class="big" id="learnPct">0%</span><div style="color:var(--dim);font-size:10px">commands learned</div></div>
+      </div>
+      <div id="learnlist"></div>
+      <button id="sleepbtn">🌙 run sleep cycle (distill everything learned)</button>
+    </div>
+    <div id="gpupanel" style="padding:10px 14px;border-bottom:1px solid var(--line);font-size:11px">
+      <div style="color:var(--memory);letter-spacing:2px;font-size:10px;margin-bottom:6px">GPU MODELS</div>
+      <div style="color:var(--dim)">probing /models/…</div>
+    </div>
+    <div id="log"></div>
+  </div>
+</main>
+<footer><span>voice → quilt → game · watch the LLM calls slow down as the quilt learns your voice</span>
+<span style="margin-left:auto">ProArt build · GPU model hooks · onnxruntime-web ready · <span id="gpuStat" style="color:var(--memory)">GPU: standby</span></span></footer>
+
+<script>
+/* ================= CONFIG ================= */
+const ORACLE_URL = 'http://147.224.38.131:8099'; // Oracle backend (optional)
+let oracleOn = false;
+
+/* ================= GPU MODEL HOOKS (ProArt) =================
+   These are PLACEHOLDERS. When onnxruntime-web is added:
+   1. <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js">
+   2. Uncomment the load() calls below.
+   3. Each cell's .infer() replaces the keyword/simulated path.
+   Until then, every hook falls back to the local path — the game
+   plays identically, just without the GPU acceleration.        */
+const MODELS = {
+  neudecide: { name:'NeuDecide', size:'42 MB', file:'/models/neudecide/audio_encoder_q4.onnx',
+    loaded:false, device:'cuda',
+    // hook: session = await ort.InferenceSession.create(this.file, {executionProviders:['cuda']});
+    infer(audioBuf){ /* hook: return tool-call JSON */ return null; } },
+  embedgemma:{ name:'EmbeddingGemma-2', size:'166 MB', file:'/models/gemma2/model_q4.onnx',
+    loaded:false, device:'cuda',
+    // hook: session = await ort.InferenceSession.create(this.file, {executionProviders:['cuda']});
+    infer(text){ /* hook: return 768-dim embedding */ return null; } },
+  taiga:      { name:'Taiga-S1', size:'4.9 MB', file:'/models/taiga/model.onnx',
+    loaded:false, device:'cpu', // tiny enough for CPU even on ProArt
+    infer(state){ /* hook: return next action */ return null; } },
+  timesfm:    { name:'TimesFM-3', size:'1.26 GB', file:'/models/timesfm/model.onnx',
+    loaded:false, device:'cuda',
+    infer(series){ /* hook: return forecast */ return null; } },
+};
+function gpuStatus(){
+  const n=Object.values(MODELS).filter(m=>m.loaded).length;
+  const el=document.getElementById('gpuStat');
+  if(el) el.textContent = n? `GPU: ${n}/${Object.keys(MODELS).length} models live` : 'GPU: standby (hooks ready)';
+}
+async function tryLoadModels(){
+  // Called on boot. Tries /models/*.onnx; silently keeps hooks unloaded if absent.
+  for(const k of Object.keys(MODELS)){
+    try{
+      const r=await fetch(MODELS[k].file,{method:'HEAD',signal:AbortSignal.timeout(1500)});
+      if(r.ok){ MODELS[k].loaded=true; logEv('GPU',MODELS[k].name+' loaded',MODELS[k].size+' · '+MODELS[k].device,'local'); }
+    }catch(e){/* not present — hook stays ready */}
+  }
+  gpuStatus(); renderGpuPanel();
+}
+function renderGpuPanel(){
+  const el=document.getElementById('gpupanel');
+  if(!el) return;
+  el.innerHTML=Object.values(MODELS).map(m=>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0">
+       <span>${m.loaded?'🟢':'⚪'} ${m.name}</span>
+       <span style="color:var(--dim)">${m.size} · ${m.device}</span>
+     </div>`).join('')+
+    `<div style="font-size:10px;color:var(--dim);margin-top:6px">hooks: drop .onnx into /models/ and reload — cells light up with real inference</div>`;
+}
+
+/* ================= WORLD ================= */
+// stylized Sitka Sound. x: 0..900, y: 0..650
+const PLACES = [
+  {key:'sitka',          name:'Sitka',          x:560, y:300, r:26},
+  {key:'cape edgecumbe', name:'Cape Edgecumbe', x:300, y:520, r:22},
+  {key:'biorka',         name:'Biorka Island',  x:480, y:600, r:16},
+  {key:'goddard',        name:'Goddard',        x:620, y:470, r:14},
+];
+const ISLANDS = [
+  // Baranof (big, east)
+  [[640,80],[760,120],[800,250],[760,420],[680,540],[620,480],[600,300],[610,150]],
+  // Kruzof (west, volcano island)
+  [[240,180],[360,200],[380,340],[340,480],[260,520],[220,380],[220,240]],
+  // Biorka (small south)
+  [[460,585],[505,590],[500,615],[465,612]],
+  // small rocks
+  [[700,180],[720,185],[715,205],[695,200]],
+];
+const plane = {x:560, y:300, hdg:270, spd:0, maxSpd:3.2, airborne:false, dest:null};
+
+/* ================= LEARNING (the visible part) ================= */
+let apiCalls = 0, localCalls = 0;
+const patterns = {}; // pattern -> {uses, learned}
+const LEARN_AFTER = 3;
+function patStatus(p){ const e=patterns[p]; return e && e.uses>=LEARN_AFTER; }
+function touchPattern(p){
+  if(!patterns[p]) patterns[p]={uses:0};
+  patterns[p].uses++;
+  return patStatus(p);
+}
+function renderLearn(){
+  const keys=Object.keys(patterns);
+  const learnedN=keys.filter(patStatus).length;
+  document.getElementById('learnPct').textContent = keys.length? Math.round(learnedN/keys.length*100)+'%':'0%';
+  document.getElementById('learnlist').innerHTML = keys.length
+    ? keys.map(k=>`<span class="pat ${patStatus(k)?'yes':'no'}">${patStatus(k)?'🟢':'🟡'} ${k} ×${patterns[k].uses}</span>`).join('')
+    : '<span style="color:var(--dim)">no commands yet — speak and the quilt starts learning</span>';
+}
+
+/* ================= QUILT (17 cells · ProArt) ================= */
+const QCX=220, QCY=180;
+const QCELLS=[
+ // prism
+ {id:'prism', x:220, y:180, w:120, h:50, label:'Jev Prism', ring:'mind', gpu:false,
+  model:'Jev · TypeSafe', cost:'~8 ms',
+  blurb:'Fan-out to cells, fan-in to decisions. Every route logged.'},
+ // body ring (r=62)
+ {id:'neudecide', x:220, y:118, label:'NeuDecide', ring:'body', gpu:true, gk:'neudecide',
+  model:'NeuDecide · 42 MB onnx', cost:'113 ms · 111 MB',
+  blurb:'Ear to tool-call. GPU hook ready — falls back to Web Speech API until .onnx lands in /models/.'},
+ {id:'gemma', x:282, y:180, label:'Sem.Ears', ring:'body', gpu:true, gk:'embedgemma',
+  model:'EmbeddingGemma-2 · 166 MB q4', cost:'32 ms · 257 MB',
+  blurb:'Say it however you want. GPU hook ready — keyword match until then.'},
+ {id:'jevgate', x:220, y:242, label:'Jev Gate', ring:'body', gpu:false,
+  model:'Jev · micro-judge', cost:'~6 ms',
+  blurb:'Is this safe? Unknown commands get refused, not guessed.'},
+ {id:'mobilenet', x:158, y:180, label:'Brush', ring:'body', gpu:false,
+  model:'MobileNetV3-small', cost:'~4 ms',
+  blurb:'A thousand tiny questions instead of one big answer.'},
+ // mind ring (r=112)
+ {id:'taiga', x:299, y:101, label:'Taiga', ring:'mind', gpu:true, gk:'taiga',
+  model:'Taiga-S1 · 1.2 M', cost:'6 ms · 260 MB',
+  blurb:'Scores valid actions. Tiny enough for CPU — GPU hook optional.'},
+ {id:'mesa', x:299, y:259, label:'Mesa', ring:'mind', gpu:false,
+  model:'Mesa-S1 · 1.2 M', cost:'6 ms · 321 MB',
+  blurb:'Operates the interface. The quilt operating itself.'},
+ {id:'t5', x:141, y:259, label:'T5', ring:'mind', gpu:false,
+  model:'T5-base · 220 M', cost:'~180 ms',
+  blurb:'The judgment that talks: "go, because…"'},
+ {id:'stereo', x:141, y:101, label:'Stereo 💤', ring:'mind', gpu:false,
+  model:'Fast-FoundationStereo', cost:'asleep',
+  blurb:'System-2 teacher. Wakes during sleep to distill depth.'},
+ // memory ring (r=150)
+ {id:'timesfm', x:266, y:37, label:'TimesFM', ring:'memory', gpu:true, gk:'timesfm',
+  model:'TimesFM-3 · 330 M', cost:'300 ms',
+  blurb:'The future as a cell. GPU hook ready for the 4050.'},
+ {id:'weird', x:370, y:180, label:'Weirdness', ring:'memory', gpu:false,
+  model:'forecast − reality', cost:'~0 ms',
+  blurb:'Not a model — a subtraction. The gap is the sensor.'},
+ {id:'nemotron', x:266, y:323, label:'Nemotron', ring:'memory', gpu:false,
+  model:'Nemotron-3 · 100 M', cost:'23× realtime',
+  blurb:'Who spoke when. Training wheels for source separation.'},
+ {id:'muscriptor', x:99, y:268, label:'MuScriptor', ring:'memory', gpu:false,
+  model:'MuScriptor-small · 103 M', cost:'CPU ok',
+  blurb:'MIDI is a temporal protocol. 16 tracks of time itself.'},
+ {id:'parrot', x:99, y:92, label:'Parrot', ring:'memory', gpu:false,
+  model:'NeuDecide + Jev', cost:'~120 ms',
+  blurb:'You watch it decide whether to obey.'},
+ // dream satellites
+ {id:'distill', x:370, y:40, label:'Distiller', ring:'dream', gpu:false,
+  model:'sleep process', cost:'idle',
+  blurb:'The Jev dissolves into the voice.'},
+ {id:'prune', x:370, y:320, label:'Pruner', ring:'dream', gpu:false,
+  model:'sleep process', cost:'idle',
+  blurb:'Every sleep should shrink the quilt.'},
+ {id:'negmine', x:60, y:320, label:'Neg.Miner', ring:'dream', gpu:false,
+  model:'sleep process', cost:'idle',
+  blurb:'The "no"s teach more than the "yes"s.'},
+];
+const RINGC={body:'#39d0d8',mind:'#5df08a',memory:'#a78bfa',dream:'#f5b942'};
+const svg=document.getElementById('quilt'), NS='http://www.w3.org/2000/svg';
+const qById={}; QCELLS.forEach(c=>qById[c.id]=c);
+function qel(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
+// edges to prism
+QCELLS.forEach(c=>{ if(c.id!=='prism') qel('line',{x1:c.x,y1:c.y,x2:QCX,y2:QCY,stroke:'rgba(125,147,168,.22)','stroke-width':1}); });
+QCELLS.forEach((c,i)=>{
+  const col=c.id==='prism'?'#ff7ad9':RINGC[c.ring];
+  const g=qel('g',{class:'cell idle',id:'q-'+c.id}); g.style.animationDelay=(i*0.2)+'s';
+  const w=c.w||76, h=c.h||34;
+  qel('rect',{x:c.x-w/2,y:c.y-h/2,width:w,height:h,rx:8,fill:'rgba(10,20,32,.94)',stroke:col,'stroke-width':c.gpu?2:1.3,style:'color:'+col,
+    'stroke-dasharray':c.gpu?'':'none'},g);
+  const t=qel('text',{x:c.x,y:c.y+1,'text-anchor':'middle',fill:'#d7e6f2','font-size':c.id==='prism'?12:9.5},g); t.textContent=c.label;
+  if(c.gpu){
+    const b=qel('text',{x:c.x+w/2-8,y:c.y-h/2+11,'text-anchor':'middle',fill:'#a78bfa','font-size':9},g);
+    b.textContent='⚡';
+    const s2=qel('text',{x:c.x,y:c.y+13,'text-anchor':'middle',fill:'#a78bfa','font-size':7.5},g);
+    const m=MODELS[c.gk]; s2.textContent=m&&m.loaded?'GPU LIVE':'GPU hook';
+  } else {
+    const s=qel('text',{x:c.x,y:c.y+13,'text-anchor':'middle',fill:'#7d93a8','font-size':7.5},g);
+    s.textContent=c.cost.split('·')[0].trim().substring(0,14);
+  }
+  g.addEventListener('click',()=>showQDetail(c));
+});
+function showQDetail(c){
+  const col=c.id==='prism'?'#ff7ad9':RINGC[c.ring];
+  const m=c.gk?MODELS[c.gk]:null;
+  const gpuLine=m?`<div style="margin-top:6px;color:var(--memory)">⚡ GPU hook: ${m.name} · ${m.size} · ${m.loaded?'<b style="color:var(--good)">LOADED</b>':'<span style="color:var(--dim)">standby — drop '+m.file+' into /models/</span>'}</div>`:'';
+  logEl.insertAdjacentHTML('afterbegin',
+   `<div class="ev"><div class="t" style="color:${col}">cell · ${c.label}</div>
+    <div>model: ${c.model} · cost: ${c.cost}</div>
+    <div style="color:var(--dim)">${c.blurb}</div>${gpuLine}</div>`);
+}
+function qlight(id,ms){
+  const g=document.getElementById('q-'+id); if(!g)return;
+  g.classList.remove('idle'); g.classList.add('active');
+  setTimeout(()=>{g.classList.remove('active');g.classList.add('idle');},ms||600);
+}
+
+/* ================= LOG ================= */
+const logEl=document.getElementById('log');
+function logEv(title,out,why,cls){
+  logEl.insertAdjacentHTML('afterbegin',
+   `<div class="ev ${cls||''}"><div class="t">${new Date().toLocaleTimeString()} · ${title}</div><div>→ <b>${out}</b></div><div style="color:var(--dim)">why: ${why}</div></div>`);
+}
+
+/* ================= COMMAND PARSING ================= */
+function parseCommand(text){
+  const t=text.toLowerCase().trim();
+  for(const p of PLACES){
+    if(t.includes(p.key) && /(fly|go|head|take me|navigate)/.test(t))
+      return {pattern:'flyto', action:'flyto', place:p, raw:text};
+  }
+  if(/turn left|left turn|bank left/.test(t))  return {pattern:'turn', action:'turn', dir:-1, raw:text};
+  if(/turn right|right turn|bank right/.test(t))return {pattern:'turn', action:'turn', dir:1, raw:text};
+  if(/speed up|faster|full throttle|throttle up/.test(t)) return {pattern:'speed', action:'speed', d:1, raw:text};
+  if(/slow down|slower|throttle down|easy/.test(t))       return {pattern:'speed', action:'speed', d:-1, raw:text};
+  if(/\bstop\b|hold position|hover/.test(t))  return {pattern:'stop', action:'stop', raw:text};
+  if(/take off|takeoff|launch/.test(t))       return {pattern:'takeoff', action:'takeoff', raw:text};
+  if(/\bland\b|touch down/.test(t))           return {pattern:'land', action:'land', raw:text};
+  if(/where am i|my position|location/.test(t))return {pattern:'where', action:'where', raw:text};
+  if(/\bstatus\b|how am i|report/.test(t))    return {pattern:'status', action:'status', raw:text};
+  return {pattern:'unknown', action:'unknown', raw:text};
+}
+
+/* ================= COMMAND EXECUTION ================= */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function handleCommand(text){
+  const cmd=parseCommand(text);
+  document.getElementById('transcript').innerHTML=
+    `<span class="heard">🎙 “${text}”</span><br><span class="parsed">parsed: ${cmd.pattern}${cmd.place?' → '+cmd.place.name:''}</span>`;
+
+  qlight('neudecide',500); await sleep(120);
+  // GPU hook: if NeuDecide .onnx is loaded, this is where real inference runs
+  const nd=MODELS.neudecide;
+  qlight('gemma',500);
+  logEv('NeuDecide → Sem.Ears',`"${text}"`,`${nd.loaded?'GPU inference':'keyword match'} → pattern <b>${cmd.pattern}</b>`,'');
+  await sleep(150);
+
+  if(cmd.action==='unknown'){
+    qlight('jevgate',700); qlight('prism',500);
+    logEv('Jev Gate','REFUSED — not in spec','unknown pattern, no guess made','hot');
+    qlight('negmine',600);
+    speak('Sorry, I did not understand that command.');
+    oracleLog(text,'unknown','refused');
+    return;
+  }
+
+  qlight('jevgate',500);
+  logEv('Jev Gate','PASS — in spec','known pattern, safe params','');
+  await sleep(150);
+
+  // ---- THE LEARNING MOMENT ----
+  const learnedAlready = patStatus(cmd.pattern);
+  let viaLLM=false;
+  if(!learnedAlready){
+    viaLLM=true; apiCalls++;
+    document.getElementById('apiCount').textContent=apiCalls;
+    qlight('prism',900);
+    logEv('Prism','FULL LLM CALL — orienting…',`pattern "${cmd.pattern}" not yet learned (${(patterns[cmd.pattern]||{uses:0}).uses+1}/${LEARN_AFTER})`,'learn');
+    await sleep(750); // simulated LLM latency
+    const nowLearned=touchPattern(cmd.pattern);
+    if(nowLearned) logEv('Memory','🧠 pattern learned!',`"${cmd.pattern}" → local reflex from now on`,'local');
+  } else {
+    localCalls++;
+    document.getElementById('localCount').textContent=localCalls;
+    qlight('prism',400);
+    logEv('Prism','local reflex — no call',`"${cmd.pattern}" already learned`,'local');
+  }
+  renderLearn();
+  qlight('parrot',400); await sleep(120);
+
+  qlight('taiga',600);
+  const steps=describeSteps(cmd);
+  const tg=MODELS.taiga;
+  logEv('Taiga',steps.join(' → '),`1 intent → N steps ${tg.loaded?'(GPU)':'(shape)'}`,'');
+  await sleep(200);
+
+  qlight('mesa',700); qlight('prism',400);
+  const result=execute(cmd);
+  logEv('Mesa',result,'hands on the plane','hot');
+  qlight('timesfm',400);
+  oracleLog(text,cmd.pattern,viaLLM?'llm':'local');
+  // radio readback: banter plays AFTER execution
+  const bk=banterKey(cmd);
+  if(bk) setTimeout(()=>playBanter(bk),1200);
+}
+
+function describeSteps(cmd){
+  switch(cmd.action){
+    case 'flyto': return [`turn to ${cmd.place.name}`, 'cruise', 'arrive'];
+    case 'turn': return [`bank ${cmd.dir<0?'left':'right'} 30°`];
+    case 'speed': return [cmd.d>0?'throttle up':'throttle down'];
+    case 'stop': return ['cut throttle','hold'];
+    case 'takeoff': return ['spool up','rotate','climb'];
+    case 'land': return ['descend','flare','touchdown'];
+    default: return ['report'];
+  }
+}
+function execute(cmd){
+  const P=plane;
+  switch(cmd.action){
+    case 'flyto':
+      if(!P.airborne){ speak('Taking off first.'); P.airborne=true; P.spd=1.5; }
+      P.dest=cmd.place;
+      speak(`Flying to ${cmd.place.name}.`);
+      return `destination ← ${cmd.place.name}`;
+    case 'turn':
+      P.hdg=(P.hdg+cmd.dir*30+360)%360; P.dest=null;
+      return `heading ← ${Math.round(P.hdg)}°`;
+    case 'speed':
+      P.spd=Math.max(0,Math.min(P.maxSpd,P.spd+cmd.d*0.8));
+      if(P.spd>0&&!P.airborne){P.airborne=true;}
+      if(P.spd===0){P.airborne=false;}
+      return `speed ← ${P.spd.toFixed(1)}`;
+    case 'stop': P.spd=0; P.dest=null; P.airborne=false; return 'holding position';
+    case 'takeoff': P.airborne=true; P.spd=1.5; return 'airborne';
+    case 'land': {
+      const s=PLACES[0], d=Math.hypot(P.x-s.x,P.y-s.y);
+      if(d<60){P.airborne=false;P.spd=0;P.dest=null;return 'landed at Sitka';}
+      P.dest=s; if(!P.airborne){P.airborne=true;P.spd=1.5;}
+      return 'returning to Sitka to land';
+    }
+    case 'where': {
+      const near=nearestPlace();
+      const msg=`You are ${near.d<50?'at':'near'} ${near.p.name}.`;
+      speak(msg); return msg;
+    }
+    case 'status': {
+      const msg=`${P.airborne?'Airborne':'On the ground'}, heading ${Math.round(P.hdg)}, speed ${P.spd.toFixed(1)}.`;
+      speak(msg); return msg;
+    }
+  }
+  return 'done';
+}
+function nearestPlace(){
+  let best=PLACES[0],bd=1e9;
+  for(const p of PLACES){const d=Math.hypot(plane.x-p.x,plane.y-p.y);if(d<bd){bd=d;best=p;}}
+  return {p:best,d:bd};
+}
+function speak(t){
+  try{ const u=new SpeechSynthesisUtterance(t); u.rate=1.05; speechSynthesis.speak(u);}catch(e){}
+}
+
+/* ================= VOICE BANTER (radio readback) ================= */
+// Command → clip mapping (see banter/banter.json). Plays AFTER execute() —
+// radio readback follows the order; the ~1.2s delay is authentic.
+// Unmatched commands stay silent; playback never throws.
+const BANTER={
+  flyto:'01-fly-to-sitka.mp3',
+  turn:'04-turn-left-speed-up.mp3',
+  speedup:'08-speed-up.mp3',
+  slowdown:'05-slow-down-biorka.mp3',
+  stop:'09-hold-position.mp3',
+};
+let banterMuted=false;
+try{banterMuted=localStorage.getItem('banterMuted')==='1';}catch(e){}
+let audioUnlocked=false; // flips on first user gesture (autoplay policy)
+function unlockAudio(){
+  audioUnlocked=true;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){
+      unlockAudio._ctx=unlockAudio._ctx||new AC();
+      if(unlockAudio._ctx.state==='suspended') unlockAudio._ctx.resume();
+    }
+  }catch(e){}
+}
+function banterKey(cmd){
+  switch(cmd.pattern){
+    case 'flyto': return 'flyto';
+    case 'turn': return 'turn';
+    case 'speed': return cmd.d>0?'speedup':'slowdown';
+    case 'stop': return 'stop';
+    default: return null; // takeoff/land/where/status/unknown — silent
+  }
+}
+function playBanter(key){
+  if(!audioUnlocked||banterMuted) return;
+  const file=BANTER[key]; if(!file) return;
+  try{
+    const a=new Audio('banter/'+file);
+    a.volume=0.9;
+    const pr=a.play();
+    if(pr&&pr.catch) pr.catch(()=>{}); // autoplay denial → stay silent
+  }catch(e){/* never break the game loop */}
+}
+function renderBanterBtn(){
+  const b=document.getElementById('banterbtn');
+  if(b) b.textContent=banterMuted?'🔇 banter off':'📻 banter on';
+}
+document.getElementById('banterbtn').addEventListener('click',()=>{
+  banterMuted=!banterMuted;
+  try{localStorage.setItem('banterMuted',banterMuted?'1':'0');}catch(e){}
+  renderBanterBtn();
+});
+renderBanterBtn();
+
+/* ================= GAME LOOP ================= */
+const cv=document.getElementById('map'), ctx=cv.getContext('2d');
+function resize(){
+  const w=cv.parentElement.clientWidth, h=cv.parentElement.clientHeight;
+  cv.width=w*devicePixelRatio; cv.height=h*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  W=w;H=h;
+}
+let W=800,H=600; resize(); addEventListener('resize',resize);
+// world→screen (world is 900x650)
+function sx(x){return x/900*W;} function sy(y){return y/650*H;} function ss(v){return v/900*W;}
+let trail=[];
+function frame(){
+  // physics
+  const P=plane;
+  if(P.dest){
+    const dx=P.dest.x-P.x, dy=P.dest.y-P.y, d=Math.hypot(dx,dy);
+    if(d<8){ P.dest=null; logEv('Navigate',`arrived — ${nearestPlace().p.name}`,'destination reached','local'); }
+    else{
+      const want=Math.atan2(dy,dx)*180/Math.PI;
+      let diff=((want-P.hdg+540)%360)-180;
+      P.hdg=(P.hdg+Math.max(-2.5,Math.min(2.5,diff))+360)%360;
+      P.spd=Math.min(P.maxSpd, P.spd+0.02);
+    }
+  }
+  if(P.airborne||P.spd>0){
+    P.x+=Math.cos(P.hdg*Math.PI/180)*P.spd;
+    P.y+=Math.sin(P.hdg*Math.PI/180)*P.spd;
+    P.x=Math.max(10,Math.min(890,P.x)); P.y=Math.max(10,Math.min(640,P.y));
+    trail.push({x:P.x,y:P.y}); if(trail.length>120)trail.shift();
+  }
+  draw(); hud();
+  requestAnimationFrame(frame);
+}
+function draw(){
+  ctx.fillStyle='#03141f'; ctx.fillRect(0,0,W,H);
+  // subtle grid
+  ctx.strokeStyle='rgba(57,208,216,.06)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // islands
+  for(const isl of ISLANDS){
+    ctx.beginPath();
+    isl.forEach(([x,y],i)=> i?ctx.lineTo(sx(x),sy(y)):ctx.moveTo(sx(x),sy(y)));
+    ctx.closePath();
+    ctx.fillStyle='#0d2b1f'; ctx.fill();
+    ctx.strokeStyle='#1f5c40'; ctx.lineWidth=2; ctx.stroke();
+  }
+  // destination marker
+  if(plane.dest){
+    ctx.strokeStyle='#ff7ad9'; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.arc(sx(plane.dest.x),sy(plane.dest.y),ss(plane.dest.r)+8,0,7);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // places
+  ctx.font='11px ui-monospace,monospace'; ctx.textAlign='center';
+  for(const p of PLACES){
+    ctx.fillStyle='#f5b942'; ctx.beginPath();ctx.arc(sx(p.x),sy(p.y),4,0,7);ctx.fill();
+    ctx.fillStyle='#d7e6f2'; ctx.fillText(p.name,sx(p.x),sy(p.y)-10);
+  }
+  // trail
+  if(trail.length>1){
+    ctx.strokeStyle='rgba(57,208,216,.35)';ctx.lineWidth=1.5;ctx.beginPath();
+    trail.forEach((t,i)=> i?ctx.lineTo(sx(t.x),sy(t.y)):ctx.moveTo(sx(t.x),sy(t.y)));
+    ctx.stroke();
+  }
+  // plane
+  const px=sx(plane.x), py=sy(plane.y), a=plane.hdg*Math.PI/180, s=ss(14);
+  ctx.save(); ctx.translate(px,py); ctx.rotate(a);
+  ctx.fillStyle=plane.airborne?'#5df08a':'#7d93a8';
+  ctx.beginPath(); ctx.moveTo(s,0); ctx.lineTo(-s*0.7,s*0.6); ctx.lineTo(-s*0.35,0); ctx.lineTo(-s*0.7,-s*0.6);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // home marker
+  ctx.strokeStyle='rgba(93,240,138,.5)';
+  ctx.beginPath();ctx.arc(sx(560),sy(300),ss(30),0,7);ctx.stroke();
+}
+function hud(){
+  document.getElementById('h-alt').textContent=plane.airborne?'1200 ft':'GROUND';
+  document.getElementById('h-hdg').textContent=Math.round(plane.hdg)+'°';
+  document.getElementById('h-spd').textContent=plane.spd.toFixed(1);
+  const n=nearestPlace();
+  document.getElementById('h-pos').textContent=n.d<50?n.p.name:`${Math.round(n.d)} from ${n.p.name}`;
+  document.getElementById('h-dest').textContent=plane.dest?plane.dest.name:'—';
+}
+
+/* ================= VOICE ================= */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const ptt=document.getElementById('ptt');
+let rec=null, listening=false;
+if(!SR){
+  ptt.disabled=true; ptt.textContent='🎙 voice not supported — type below';
+  logEv('system','Web Speech API unavailable','use the text box','hot');
+}else{
+  rec=new SR(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onresult=e=>{ const t=e.results[0][0].transcript; handleCommand(t); };
+  rec.onerror=e=>{ logEv('mic','error: '+e.error,'check mic permission','hot'); stopListen(); };
+  rec.onend=()=>{ if(listening) stopListen(); };
+  const startListen=()=>{ try{rec.start();}catch(e){} listening=true; ptt.classList.add('listening'); ptt.textContent='🔴 LISTENING…'; };
+  const stopListen=()=>{ try{rec.stop();}catch(e){} listening=false; ptt.classList.remove('listening'); ptt.textContent='🎙 HOLD TO TALK'; };
+  window.stopListen=stopListen;
+  ptt.addEventListener('pointerdown',e=>{e.preventDefault();unlockAudio();startListen();});
+  ptt.addEventListener('pointerup',stopListen);
+  ptt.addEventListener('pointerleave',()=>{if(listening)stopListen();});
+}
+document.getElementById('typed').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.value.trim()){ unlockAudio(); handleCommand(e.target.value.trim()); e.target.value=''; }
+});
+document.getElementById('sleepbtn').addEventListener('click',()=>{
+  let n=0;
+  for(const k of Object.keys(patterns)) if(!patStatus(k)){patterns[k].uses=LEARN_AFTER;n++;}
+  renderLearn();
+  qlight('distill',1200); qlight('prune',1200); qlight('negmine',1200);
+  logEv('🌙 sleep cycle',`${n} patterns distilled`,'the Jev dissolves into the voice · quilt shrinks','local');
+  speak('Sleep cycle complete. All commands are now reflexes.');
+});
+
+/* ================= ORACLE (optional backend) ================= */
+async function checkOracle(){
+  try{
+    const r=await fetch(ORACLE_URL+'/api/health',{signal:AbortSignal.timeout(2500)});
+    if(r.ok){ oracleOn=true;
+      document.getElementById('oracleStatus').classList.add('on');
+      document.getElementById('oracleText').textContent='oracle: linked ✓';
+      logEv('oracle','backend linked','heavy lifting available','local');
+      return;
+    }
+  }catch(e){}
+  document.getElementById('oracleText').textContent='oracle: local only';
+}
+async function oracleLog(text,pattern,mode){
+  if(!oracleOn) return;
+  try{ await fetch(ORACLE_URL+'/api/log',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text,pattern,mode,ts:Date.now()})}); }catch(e){}
+}
+
+/* ================= BOOT ================= */
+renderLearn(); checkOracle(); tryLoadModels(); frame();
+logEv('welcome','Sitka Skies · ProArt build','17 cells · GPU hooks probing /models/ · hold the mic and say "fly to cape edgecumbe"','');
+setTimeout(()=>{['neudecide','gemma','jevgate','prism'].forEach((id,i)=>setTimeout(()=>qlight(id,500),i*300));},500);
+</script>
+</body>
+</html>

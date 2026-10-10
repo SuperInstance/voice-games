@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COLOR SQUAD — voice-commanded 4-unit RTS</title>
+<style>
+  :root{
+    --bg:#04090f; --ink:#d7e6f2; --dim:#7d93a8;
+    --body:#39d0d8; --mind:#5df08a; --memory:#a78bfa; --dream:#f5b942;
+    --prism:#ff7ad9; --panel:#0a1420; --line:rgba(125,147,168,.25);
+    --good:#5df08a; --warn:#f5b942; --bad:#ff7ad9;
+    --red:#ff5a5a; --blue:#5aa8ff; --green:#5df08a; --yellow:#f5d942;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    display:flex;flex-direction:column; overflow:hidden;
+  }
+  header{
+    padding:10px 18px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:14px;
+  }
+  header h1{font-size:18px;letter-spacing:3px}
+  header h1 .s{color:var(--prism)}
+  .vessel{font-size:11px;border:1px solid var(--mind);color:var(--mind);
+    padding:3px 10px;border-radius:20px}
+  .score{margin-left:auto;font-size:14px;font-weight:700}
+  .score .you{color:var(--mind)} .score .them{color:var(--bad)}
+  main{flex:1;display:flex;min-height:0}
+  /* ---- left: game ---- */
+  #gamepane{flex:1.25;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line)}
+  #mapwrap{flex:1;position:relative;min-height:0;background:#04140c}
+  #map{position:absolute;inset:0;width:100%;height:100%}
+  #hud{position:absolute;top:10px;left:12px;font-size:12px;line-height:1.7;
+    background:rgba(4,9,15,.78);padding:8px 12px;border-radius:8px;border:1px solid var(--line)}
+  #hud b{color:var(--mind)}
+  #tutor{position:absolute;bottom:10px;left:12px;right:12px;font-size:12px;
+    background:rgba(26,15,30,.9);padding:8px 12px;border-radius:8px;border:1px solid var(--prism);display:none}
+  #tutor.show{display:block}
+  #tutor b{color:var(--prism)}
+  #voicebar{padding:12px 14px;border-top:1px solid var(--line);background:var(--panel)}
+  #voicebar .row{display:flex;gap:8px;align-items:center}
+  #ptt{
+    font:inherit;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;
+    border:2px solid var(--prism);background:#1a0f1e;color:#fff;padding:12px 22px;
+    user-select:none;-webkit-user-select:none;touch-action:none;
+  }
+  #ptt.listening{background:#3a1c4d;box-shadow:0 0 22px rgba(255,122,217,.5)}
+  #banterbtn{
+    font:inherit;font-size:12px;cursor:pointer;border-radius:10px;white-space:nowrap;
+    border:1px solid var(--mind);background:transparent;color:var(--ink);padding:12px 14px;
+  }
+  #banterbtn:hover{background:rgba(93,240,138,.12)}
+  #transcript{flex:1;background:#060d16;border:1px solid var(--line);color:var(--ink);
+    padding:10px 12px;border-radius:8px;font:inherit;font-size:13px;min-height:44px}
+  #transcript .heard{color:var(--prism)}
+  #transcript .parsed{color:var(--dim);font-size:11px}
+  #typed{width:100%;margin-top:8px;background:#060d16;border:1px solid var(--line);
+    color:var(--ink);padding:8px 10px;border-radius:8px;font:inherit;font-size:12px}
+  .cmdhelp{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.8}
+  .cmdhelp b{color:var(--ink)}
+  .cmdhelp .locked{opacity:.45;text-decoration:line-through}
+  /* ---- right: quilt + stats ---- */
+  #side{flex:1;display:flex;flex-direction:column;min-width:340px;max-width:460px;min-height:0}
+  #quiltwrap{height:300px;position:relative;border-bottom:1px solid var(--line)}
+  #quilt{width:100%;height:100%;display:block}
+  #apibar{padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px}
+  #apibar .big{font-size:22px;font-weight:700}
+  #apibar .row{display:flex;gap:14px;align-items:baseline;margin-top:4px}
+  #learnlist{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.8}
+  #learnlist .pat{display:inline-block;margin-right:10px}
+  #learnlist .yes{color:var(--good)} #learnlist .no{color:var(--warn)}
+  #sleepbtn{margin-top:8px;font:inherit;font-size:12px;cursor:pointer;border-radius:8px;
+    border:1px solid var(--dream);background:transparent;color:var(--dream);padding:8px 14px}
+  #sleepbtn:hover{background:rgba(245,185,66,.12)}
+  #newmap{margin-top:8px;margin-left:8px;font:inherit;font-size:12px;cursor:pointer;border-radius:8px;
+    border:1px solid var(--body);background:transparent;color:var(--body);padding:8px 14px}
+  #newmap:hover{background:rgba(57,208,216,.12)}
+  #log{flex:1;overflow-y:auto;padding:12px 14px;font-size:11.5px;line-height:1.5;min-height:0}
+  #log .ev{margin-bottom:8px;padding:7px 10px;border-left:2px solid var(--line);
+    background:rgba(255,255,255,.015);border-radius:0 6px 6px 0;animation:slidein .25s}
+  #log .ev .t{color:var(--dim);font-size:10px}
+  #log .ev.hot{border-left-color:var(--prism)}
+  #log .ev.learn{border-left-color:var(--warn)}
+  #log .ev.local{border-left-color:var(--good)}
+  #log .ev.tutor{border-left-color:var(--dream)}
+  @keyframes slidein{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+  .cell{cursor:pointer}.cell rect{transition:all .2s}.cell text{pointer-events:none}
+  .cell.active rect{stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 0 12px currentColor)}
+  @keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+  .idle{animation:breathe 3.2s ease-in-out infinite}
+  footer{padding:6px 18px;border-top:1px solid var(--line);font-size:10.5px;color:var(--dim);
+    display:flex;gap:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="s">C</span>OLOR SQUAD</h1>
+  <span class="vessel">voice RTS · 4 units · capture the flag</span>
+  <span class="score"><span class="you" id="scoreYou">0</span> — <span class="them" id="scoreThem">0</span></span>
+</header>
+<main>
+  <div id="gamepane">
+    <div id="mapwrap">
+      <canvas id="map"></canvas>
+      <div id="hud">FLAG <b id="h-flag">—</b> · UNITS <b id="h-units">—</b><br>SCORE <b id="h-score">0–0</b> · MAP <b id="h-map">—</b></div>
+      <div id="tutor"><b>📋 TUTOR:</b> <span id="tutorText"></span></div>
+    </div>
+    <div id="voicebar">
+      <div class="row">
+        <button id="ptt">🎙 HOLD TO TALK</button>
+        <button id="banterbtn" title="toggle radio banter readback">📻 banter on</button>
+        <div id="transcript"><span style="color:var(--dim)">press &amp; hold, or type below…</span></div>
+      </div>
+      <input id="typed" placeholder='type a command + Enter — e.g. "red move to center"' spellcheck="false">
+      <div class="cmdhelp" id="cmdhelp">
+        <b>red / blue / green / yellow / all</b> + <b>move to</b> north · south · east · west · center · our flag · their flag ·
+        <b>stop</b> &nbsp;|&nbsp;
+        <span id="ch-attack"><b>attack</b> <span class="locked">locked</span></span> &nbsp;|&nbsp;
+        <span id="ch-defend"><b>defend</b> <span class="locked">locked</span></span> &nbsp;|&nbsp;
+        <span id="ch-patrol"><b>patrol</b> <span class="locked">locked</span></span>
+      </div>
+    </div>
+  </div>
+  <div id="side">
+    <div id="quiltwrap"><svg id="quilt" viewBox="0 0 440 300" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div id="apibar">
+      <div class="row">
+        <div><span class="big" id="apiCount" style="color:var(--warn)">0</span><div style="color:var(--dim);font-size:10px">LLM calls made</div></div>
+        <div><span class="big" id="localCount" style="color:var(--good)">0</span><div style="color:var(--dim);font-size:10px">local reflexes</div></div>
+        <div style="margin-left:auto;text-align:right"><span class="big" id="learnPct">0%</span><div style="color:var(--dim);font-size:10px">commands learned</div></div>
+      </div>
+      <div id="learnlist"></div>
+      <button id="sleepbtn">🌙 run sleep cycle (distill everything learned)</button>
+      <button id="newmap">🔄 new map</button>
+    </div>
+    <div id="log"></div>
+  </div>
+</main>
+<footer><span>voice → quilt → squad · the tutor teaches commands one at a time · watch the LLM calls slow down</span>
+<span style="margin-left:auto">bootstrap: move/stop → attack → defend → patrol</span></footer>
+
+<script>
+/* ================= WORLD ================= */
+const W_WORLD=900, H_WORLD=650;
+const HOME_P={x:90,y:325}, HOME_E={x:810,y:325};
+const MID={x:450,y:325};
+const PLACES={
+  'north':{x:450,y:80},'south':{x:450,y:570},'east':{x:700,y:325},'west':{x:200,y:325},
+  'center':{x:450,y:325},'middle':{x:450,y:325},
+  'our flag':HOME_P,'their flag':HOME_E,'the flag':HOME_E,'enemy flag':HOME_E,
+  'base':HOME_P,'home':HOME_P
+};
+const HAT_COLORS={red:'#ff5a5a',blue:'#5aa8ff',green:'#5df08a',yellow:'#f5d942'};
+const HATS=['red','blue','green','yellow'];
+const ENEMY_HATS=['#8a6de8','#8a6de8','#8a6de8','#8a6de8'];
+
+let units=[], flags={}, obstacles=[], mapSeed=1, scoreYou=0, scoreThem=0, gameOver=false;
+const WIN_SCORE=3;
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+function genMap(seed){
+  mapSeed=seed; obstacles=[];
+  const rnd=mulberry32(seed*9973+7);
+  for(let i=0;i<14;i++){
+    const x=180+rnd()*540, y=70+rnd()*510, r=18+rnd()*30;
+    // keep clear of bases and center
+    if(Math.hypot(x-HOME_P.x,y-HOME_P.y)<90) continue;
+    if(Math.hypot(x-HOME_E.x,y-HOME_E.y)<90) continue;
+    if(Math.hypot(x-MID.x,y-MID.y)<70) continue;
+    obstacles.push({x,y,r});
+  }
+  document.getElementById('h-map').textContent='#'+seed;
+}
+
+function spawnUnits(){
+  units=[];
+  const spots=[[70,220],[70,325],[70,430],[140,325]];
+  HATS.forEach((hat,i)=>{
+    units.push({id:'p-'+hat,hat,team:'player',x:spots[i][0],y:spots[i][1],
+      hp:100,maxHp:100,state:'idle',tx:null,ty:null,target:null,hasFlag:false,
+      respawnIn:0,patrolA:null,patrolB:null,patrolDir:1,speed:1.6,queue:[]});
+  });
+  const espots=[[830,220],[830,325],[830,430],[760,325]];
+  for(let i=0;i<4;i++){
+    units.push({id:'e-'+i,hat:null,team:'enemy',x:espots[i][0],y:espots[i][1],
+      hp:100,maxHp:100,state:'idle',tx:null,ty:null,target:null,hasFlag:false,
+      respawnIn:0,patrolA:null,patrolB:null,patrolDir:1,speed:1.35,queue:[]});
+  }
+  flags={ player:{x:HOME_P.x,y:HOME_P.y,home:HOME_P,carrier:null},
+           enemy:{x:HOME_E.x,y:HOME_E.y,home:HOME_E,carrier:null} };
+  gameOver=false;
+}
+
+/* ================= LEARNING / BOOTSTRAP ================= */
+let apiCalls=0, localCalls=0;
+const patterns={};            // cmd-pattern -> {uses}
+const LEARN_AFTER=3;
+function patStatus(p){const e=patterns[p];return e&&e.uses>=LEARN_AFTER;}
+function touchPattern(p){if(!patterns[p])patterns[p]={uses:0};patterns[p].uses++;return patStatus(p);}
+function renderLearn(){
+  const keys=Object.keys(patterns);
+  const learnedN=keys.filter(patStatus).length;
+  document.getElementById('learnPct').textContent=keys.length?Math.round(learnedN/keys.length*100)+'%':'0%';
+  document.getElementById('learnlist').innerHTML=keys.length
+    ? keys.map(k=>`<span class="pat ${patStatus(k)?'yes':'no'}">${patStatus(k)?'🟢':'🟡'} ${k} ×${patterns[k].uses}</span>`).join('')
+    : '<span style="color:var(--dim)">no commands yet — speak and the quilt starts learning</span>';
+}
+
+// bootstrap: which verbs are unlocked
+const UNLOCKED={move:true,stop:true,attack:false,defend:false,patrol:false};
+const moveCount={n:0}, attackCount={n:0}, defendCount={n:0};
+function tutorSay(text,sayIt){
+  document.getElementById('tutorText').textContent=text;
+  document.getElementById('tutor').classList.add('show');
+  logEv('📋 tutor',text,'bootstrapping the squad','tutor');
+  if(sayIt!==false) speak(text);
+  clearTimeout(tutorSay._t);
+  tutorSay._t=setTimeout(()=>document.getElementById('tutor').classList.remove('show'),9000);
+}
+function checkUnlocks(){
+  if(!UNLOCKED.attack && moveCount.n>=3){
+    UNLOCKED.attack=true;
+    document.getElementById('ch-attack').innerHTML='<b>attack</b> [nearest enemy / their flag]';
+    tutorSay('Good. Now try an order with teeth: say "Red, attack!" — your unit will engage the nearest enemy.');
+    logEv('🔓 unlock','attack','3 move commands completed','learn');
+  }
+  if(!UNLOCKED.defend && attackCount.n>=2){
+    UNLOCKED.defend=true;
+    document.getElementById('ch-defend').innerHTML='<b>defend</b> [guards our flag]';
+    tutorSay('Now defense: say "Blue, defend!" — Blue falls back to our flag and engages anyone near it.');
+    logEv('🔓 unlock','defend','2 attacks completed','learn');
+  }
+  if(!UNLOCKED.patrol && defendCount.n>=2){
+    UNLOCKED.patrol=true;
+    document.getElementById('ch-patrol').innerHTML='<b>patrol</b> [our flag ↔ center]';
+    tutorSay('Last one: say "Green, patrol!" — Green walks our flag to center and back, engaging on sight.');
+    logEv('🔓 unlock','patrol','2 defends completed','learn');
+  }
+}
+
+/* ================= QUILT ================= */
+const QCX=220,QCY=150;
+const QCELLS=[
+ {id:'ear',   x:70, y:60,  label:'Ear',      ring:'body',  model:'Web Speech API', cost:'browser-native',
+  blurb:'Your voice, straight from the mic.'},
+ {id:'router',x:70, y:150, label:'Router',   ring:'body',  model:'keyword match', cost:'<1 ms',
+  blurb:'"red attack" → unit=red, verb=attack. Hat colors are the addressing scheme.'},
+ {id:'judge', x:70, y:240, label:'Jev Gate',  ring:'body',  model:'micro-judge', cost:'~6 ms',
+  blurb:'Negation guard: "don\'t stop" is REFUSED, not executed. Locked verbs are refused too.'},
+ {id:'prism', x:220,y:150, label:'Prism',     ring:'mind',  model:'Jev · router', cost:'~8 ms', w:120,
+  blurb:'Fan-out to units, fan-in to decisions. Every route logged.'},
+ {id:'decomp',x:370,y:90,  label:'Decompose', ring:'mind',  model:'Taiga-shape', cost:'6 ms',
+  blurb:'"red attack their flag" → [move to flag] → [engage defenders]. "A then B" queues both.'},
+ {id:'act',   x:370,y:210, label:'Act',       ring:'mind',  model:'game bridge', cost:'1 frame',
+  blurb:'Hands on the squad. Orders become state machines.'},
+ {id:'mem',   x:220,y:262, label:'Memory',    ring:'memory',model:'pattern store', cost:'localStorage',
+  blurb:'Every command counted. Three clean runs → local reflex, no LLM call.'},
+ {id:'sleep', x:370,y:262, label:'Sleep',     ring:'dream', model:'distiller', cost:'idle only',
+  blurb:'At night the quilt distills. Tutor unlocks, patterns freeze. Run it with the button.'},
+];
+const RINGC={body:'#39d0d8',mind:'#5df08a',memory:'#a78bfa',dream:'#f5b942'};
+const svg=document.getElementById('quilt'), NS='http://www.w3.org/2000/svg';
+function qel(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
+QCELLS.forEach(c=>{if(c.id!=='prism')qel('line',{x1:c.x,y1:c.y,x2:QCX,y2:QCY,stroke:'rgba(125,147,168,.22)','stroke-width':1});});
+QCELLS.forEach((c,i)=>{
+  const col=c.id==='prism'?'#ff7ad9':RINGC[c.ring];
+  const g=qel('g',{class:'cell idle',id:'q-'+c.id});g.style.animationDelay=(i*0.25)+'s';
+  const w=c.w||86,h=40;
+  qel('rect',{x:c.x-w/2,y:c.y-h/2,width:w,height:h,rx:9,fill:'rgba(10,20,32,.94)',stroke:col,'stroke-width':1.4,style:'color:'+col},g);
+  const t=qel('text',{x:c.x,y:c.y+4,'text-anchor':'middle',fill:'#d7e6f2','font-size':11},g);t.textContent=c.label;
+  g.addEventListener('click',()=>logEv('cell · '+c.label,`model: ${c.model} · cost: ${c.cost}`,c.blurb,''));
+});
+function qlight(id,ms){
+  const g=document.getElementById('q-'+id);if(!g)return;
+  g.classList.remove('idle');g.classList.add('active');
+  setTimeout(()=>{g.classList.remove('active');g.classList.add('idle');},ms||600);
+}
+
+/* ================= LOG / SPEECH ================= */
+const logEl=document.getElementById('log');
+function logEv(title,out,why,cls){
+  logEl.insertAdjacentHTML('afterbegin',
+   `<div class="ev ${cls||''}"><div class="t">${new Date().toLocaleTimeString()} · ${title}</div><div>→ <b>${out}</b></div><div style="color:var(--dim)">why: ${why}</div></div>`);
+}
+function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=1.08;speechSynthesis.speak(u);}catch(e){}}
+
+/* ================= VOICE BANTER (radio readback) ================= */
+// Command → clip mapping (see banter/banter.json). Plays AFTER the orders
+// are issued — radio readback follows the order; the ~1.2s delay is authentic.
+// Unmatched commands (patrol, locked, refused, unknown) stay silent;
+// playback never throws.
+const BANTER={
+  move:'02-red-move-center.mp3',
+  attack:'03-all-attack.mp3',
+  stop:'06-all-halt.mp3',
+  defend:'07-blue-defend.mp3',
+  chain:'10-yellow-move-engage.mp3', // "move north then engage the enemy"
+};
+let banterMuted=false;
+try{banterMuted=localStorage.getItem('banterMuted')==='1';}catch(e){}
+let audioUnlocked=false; // flips on first user gesture (autoplay policy)
+function unlockAudio(){
+  audioUnlocked=true;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){
+      unlockAudio._ctx=unlockAudio._ctx||new AC();
+      if(unlockAudio._ctx.state==='suspended') unlockAudio._ctx.resume();
+    }
+  }catch(e){}
+}
+function banterKey(cmd){
+  if(cmd.chained){
+    const seq=cmd.cmds.map(c=>c.verb).join('+');
+    if(seq==='move+attack') return 'chain';
+    const first=cmd.cmds[0]&&cmd.cmds[0].verb;
+    return first&&BANTER[first]?first:null;
+  }
+  return BANTER[cmd.pattern]?cmd.pattern:null;
+}
+function playBanter(key){
+  if(!audioUnlocked||banterMuted) return;
+  const file=BANTER[key]; if(!file) return;
+  try{
+    const a=new Audio('banter/'+file);
+    a.volume=0.9;
+    const pr=a.play();
+    if(pr&&pr.catch) pr.catch(()=>{}); // autoplay denial → stay silent
+  }catch(e){/* never break the game loop */}
+}
+function renderBanterBtn(){
+  const b=document.getElementById('banterbtn');
+  if(b) b.textContent=banterMuted?'🔇 banter off':'📻 banter on';
+}
+document.getElementById('banterbtn').addEventListener('click',()=>{
+  banterMuted=!banterMuted;
+  try{localStorage.setItem('banterMuted',banterMuted?'1':'0');}catch(e){}
+  renderBanterBtn();
+});
+renderBanterBtn();
+
+/* ================= COMMAND PARSING ================= */
+// Returns {units:[...], verb, arg, pattern, raw} or {refused, reason}
+function parseOne(text){
+  let t=text.toLowerCase().trim();
+  // --- negation guard (Jev) ---
+  if(/\b(don'?t|do not|never|stop (that|it))\b/.test(t) && /\b(stop|halt)\b/.test(t) && /don'?t stop|do not stop/.test(t)){
+    return {refused:true, reason:'negation — "don\'t stop" refused, not executed', kind:'negation'};
+  }
+  // --- who ---
+  let targets=[];
+  const wantAll=/\b(all|everyone|everybody|squad|team)\b/.test(t);
+  for(const h of HATS) if(new RegExp('\\b'+h+'\\b').test(t)) targets.push(h);
+  if(wantAll) targets=HATS.slice();
+  if(!targets.length) return {refused:true, reason:'no unit named — say red, blue, green, yellow, or all', kind:'nounit'};
+  // --- verb ---
+  let verb=null, arg=null;
+  if(/\bpatrol\b/.test(t)){verb='patrol';}
+  else if(/\bdefend\b|guard|protect/.test(t)){verb='defend';}
+  else if(/\battack\b|engage|shoot|kill|hit\b/.test(t)){verb='attack';}
+  else if(/\bmove\b|go to|head to|fly to|take/.test(t)||/\b(north|south|east|west|center|middle)\b/.test(t)){verb='move';}
+  else if(/\bstop\b|halt|hold/.test(t)){verb='stop';}
+  if(!verb) return {refused:true, reason:'no verb understood — move, stop, attack, defend, patrol', kind:'noverb'};
+  if(!UNLOCKED[verb]) return {refused:true, reason:`"${verb}" is locked — the tutor hasn't taught it yet`, kind:'locked', verb};
+  // --- arg: place ---
+  for(const k of Object.keys(PLACES)){
+    if(t.includes(k)){arg=PLACES[k];break;}
+  }
+  return {units:targets, verb, arg, pattern:verb, raw:text};
+}
+
+function parseCommand(text){
+  // "A then B" chains → two commands queued
+  const parts=text.split(/\bthen\b/i).map(s=>s.trim()).filter(Boolean).slice(0,2);
+  const cmds=[];
+  for(const p of parts){
+    const c=parseOne(p);
+    if(c.refused) return {refused:true, reason:c.reason, kind:c.kind, verb:c.verb};
+    cmds.push(c);
+  }
+  if(parts.length>1) return {chained:true, cmds, pattern:cmds[0].pattern, raw:text};
+  return Object.assign({chained:false}, cmds[0]);
+}
+
+/* ================= ORDER EXECUTION ================= */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const byHat=h=>units.find(u=>u.team==='player'&&u.hat===h);
+
+function issueOrder(cmd, viaVoice){
+  const desc=cmd.units.map(h=>h).join('+')+' '+cmd.verb+(cmd.arg?' → place':'');
+  for(const h of cmd.units){
+    const u=byHat(h); if(!u||u.respawnIn>0) continue;
+    u.queue.push({verb:cmd.verb, arg:cmd.arg});
+    if(u.queue.length===1) startNext(u);
+  }
+  return desc;
+}
+function startNext(u){
+  const o=u.queue[0]; if(!o){u.state='idle';return;}
+  switch(o.verb){
+    case 'move':
+      u.state='move';
+      u.tx=o.arg?o.arg.x:MID.x; u.ty=o.arg?o.arg.y:MID.y; u.target=null;
+      break;
+    case 'stop': u.queue=[]; u.state='idle'; u.tx=u.ty=null; u.target=null; break;
+    case 'attack':{
+      u.state='attack';
+      const foes=units.filter(e=>e.team==='enemy'&&e.respawnIn<=0);
+      u.target=nearestTo(u,foes);
+      if(o.arg && (o.arg===HOME_E||o.arg===PLACES['their flag']||o.arg===PLACES['the flag']||o.arg===PLACES['enemy flag'])){
+        u.tx=flags.enemy.x; u.ty=flags.enemy.y; // march on their flag, engage on sight
+      } else { u.tx=u.target?u.target.x:MID.x; u.ty=u.target?u.target.y:MID.y; }
+      break;}
+    case 'defend':
+      u.state='defend'; u.tx=flags.player.x; u.ty=flags.player.y; u.target=null;
+      break;
+    case 'patrol':
+      u.state='patrol';
+      u.patrolA={x:flags.player.x,y:flags.player.y}; u.patrolB={x:MID.x,y:MID.y}; u.patrolDir=1;
+      u.tx=u.patrolB.x; u.ty=u.patrolB.y;
+      break;
+  }
+}
+function nearestTo(u,list){
+  let best=null,bd=1e9;
+  for(const e of list){const d=Math.hypot(u.x-e.x,u.y-e.y);if(d<bd){bd=d;best=e;}}
+  return best;
+}
+
+async function handleCommand(text){
+  document.getElementById('transcript').innerHTML=
+    `<span class="heard">🎙 “${text}”</span><br><span class="parsed" id="parsedLine">parsing…</span>`;
+  qlight('ear',500); await sleep(120);
+  qlight('router',500); await sleep(150);
+
+  const cmd=parseCommand(text);
+  if(cmd.refused){
+    qlight('judge',800); qlight('prism',500);
+    const pl=document.getElementById('parsedLine'); if(pl) pl.textContent='refused: '+cmd.reason;
+    logEv('Jev Gate','REFUSED — '+cmd.reason,cmd.kind==='locked'?'locked verb, no guess made':cmd.kind+' guard fired','hot');
+    speak('No. '+cmd.reason+'.');
+    if(cmd.kind==='locked') tutorSay(`"${cmd.verb}" is still locked. Keep using the commands you have — I'll teach it soon.`,false);
+    return;
+  }
+  const pl=document.getElementById('parsedLine');
+  if(pl) pl.textContent=`parsed: ${cmd.chained?cmd.cmds.map(c=>c.verb).join(' then '):cmd.verb} → ${cmd.chained?cmd.cmds[0].units.join('+'):cmd.units.join('+')}`;
+
+  qlight('judge',500);
+  logEv('Jev Gate','PASS — in spec','known verb, named units','');
+  await sleep(150);
+
+  // ---- learning moment (per verb pattern) ----
+  const p=cmd.pattern, already=patStatus(p);
+  if(!already){
+    apiCalls++; document.getElementById('apiCount').textContent=apiCalls;
+    qlight('prism',900);
+    logEv('Prism','FULL LLM CALL — orienting…',`"${p}" not yet learned (${(patterns[p]||{uses:0}).uses+1}/${LEARN_AFTER})`,'learn');
+    await sleep(700);
+    if(touchPattern(p)) logEv('Memory','🧠 pattern learned!',`"${p}" → local reflex from now on`,'local');
+  } else {
+    localCalls++; document.getElementById('localCount').textContent=localCalls;
+    qlight('prism',400);
+    logEv('Prism','local reflex — no call',`"${p}" already learned`,'local');
+  }
+  renderLearn(); qlight('mem',400); await sleep(120);
+
+  // ---- decompose ----
+  qlight('decomp',600);
+  const steps=[];
+  const list=cmd.chained?cmd.cmds:[cmd];
+  for(const c of list) steps.push(c.units.join('+')+' '+c.verb+(c.arg?'→place':''));
+  logEv('Decompose',steps.join('  ⟹  '),cmd.chained?'chained "then" — queued in order':'1 intent → N unit orders','');
+  await sleep(200);
+
+  // ---- act ----
+  qlight('act',700); qlight('prism',400);
+  const done=[];
+  for(const c of list) done.push(issueOrder(c,true));
+  logEv('Act',done.join(' · '),'orders issued to squad','hot');
+  // radio readback: banter plays AFTER the orders are issued
+  const bk=banterKey(cmd);
+  if(bk) setTimeout(()=>playBanter(bk),1200);
+  // bootstrap counters
+  for(const c of list){
+    if(c.verb==='move') moveCount.n++;
+    if(c.verb==='attack') attackCount.n++;
+    if(c.verb==='defend') defendCount.n++;
+  }
+  checkUnlocks();
+  speak(cmd.chained?'Orders queued.':`${cmd.units.join(' and ')}: ${cmd.verb}.`);
+}
+
+/* ================= ENEMY AI ================= */
+let aiTick=0;
+function enemyAI(){
+  aiTick++;
+  if(aiTick%45!==0) return;
+  const foes=units.filter(u=>u.team==='enemy'&&u.respawnIn<=0);
+  const ours=units.filter(u=>u.team==='player'&&u.respawnIn<=0);
+  // who carries our flag?
+  const thief=foes.find(f=>f.hasFlag);
+  foes.forEach((f,i)=>{
+    if(thief){ // escort the thief home
+      f.state='move'; f.tx=HOME_E.x; f.ty=HOME_E.y; f.target=null; return;
+    }
+    if(i<2){ // runners: go for our flag
+      const near=nearestTo(f,ours);
+      if(near && Math.hypot(f.x-near.x,f.y-near.y)<170){f.state='attack';f.target=near;}
+      else {f.state='move';f.tx=flags.player.x;f.ty=flags.player.y;f.target=null;}
+    } else { // guards: hang near their flag, engage close enemies
+      const near=nearestTo(f,ours);
+      if(near && Math.hypot(f.x-near.x,f.y-near.y)<200){f.state='attack';f.target=near;}
+      else {f.state='defend';f.tx=flags.enemy.x;f.ty=flags.enemy.y;f.target=null;}
+    }
+  });
+}
+
+/* ================= SIMULATION ================= */
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function blocked(x,y){
+  for(const o of obstacles) if(Math.hypot(x-o.x,y-o.y)<o.r+6) return true;
+  return false;
+}
+function stepUnit(u,dt){
+  if(u.respawnIn>0){u.respawnIn-=dt;if(u.respawnIn<=0){u.hp=u.maxHp;const h=u.team==='player'?HOME_P:HOME_E;u.x=h.x+(Math.random()*40-20);u.y=h.y+(Math.random()*120-60);u.state='idle';u.queue=[];u.hasFlag=false;}return;}
+  // movement toward tx,ty
+  if(u.tx!=null){
+    const dx=u.tx-u.x, dy=u.ty-u.y, d=Math.hypot(dx,dy);
+    if(d<10){
+      u.tx=u.ty=null;
+      if(u.state==='move'){u.state='idle';const o=u.queue.shift();if(o)startNext(u);}
+      else if(u.state==='patrol'){u.patrolDir*=-1;const t=u.patrolDir>0?u.patrolB:u.patrolA;u.tx=t.x;u.ty=t.y;}
+    } else {
+      const sp=u.speed*dt*60;
+      let nx=u.x+dx/d*sp, ny=u.y+dy/d*sp;
+      if(!blocked(nx,ny)){u.x=nx;u.y=ny;}
+      else { // slide around
+        if(!blocked(u.x+dx/d*sp,u.y))u.x+=dx/d*sp;
+        else if(!blocked(u.x,u.y+dy/d*sp))u.y+=dy/d*sp;
+      }
+      u.x=Math.max(8,Math.min(W_WORLD-8,u.x));u.y=Math.max(8,Math.min(H_WORLD-8,u.y));
+    }
+  }
+  // combat
+  const foes=units.filter(e=>e.team!==u.team&&e.respawnIn<=0);
+  let foe=nearestTo(u,foes);
+  const wantFight = u.state==='attack'||u.state==='defend'||u.state==='patrol'||(u.hasFlag);
+  if(foe && dist(u,foe)<130 && (wantFight||dist(u,foe)<60)){
+    if(dist(u,foe)>70){ // close distance
+      const dx=foe.x-u.x,dy=foe.y-u.y,d=Math.hypot(dx,dy);
+      const nx=u.x+dx/d*u.speed*dt*60, ny=u.y+dy/d*u.speed*dt*60;
+      if(!blocked(nx,ny)){u.x=nx;u.y=ny;}
+    } else {
+      foe.hp-=22*dt; // dps
+      if(foe.hp<=0) kill(foe,u);
+    }
+  } else if(u.state==='attack'){
+    if(!foe||foe.respawnIn>0){const o=u.queue.shift();if(o)startNext(u);else{u.state='idle';u.tx=u.ty=null;}}
+  }
+  // flag pickup / capture
+  const ef=flags.enemy, pf=flags.player;
+  if(u.team==='player'&&!u.hasFlag&&!ef.carrier&&dist(u,ef)<24){ef.carrier=u;u.hasFlag=true;logEv('⚑ flag','Red-team unit took THEIR flag','carry it home!','hot');speak('We have their flag! Bring it home!');}
+  if(u.team==='enemy'&&!u.hasFlag&&!pf.carrier&&dist(u,pf)<24){pf.carrier=u;u.hasFlag=true;logEv('⚑ flag','enemy took OUR flag','stop them!','hot');speak('They have our flag!');}
+  if(u.team==='player'&&u.hasFlag&&dist(u,HOME_P)<40){
+    scoreYou++; ef.carrier=null;u.hasFlag=false;ef.x=HOME_E.x;ef.y=HOME_E.y;
+    logEv('🏆 CAPTURE',`YOU score! ${scoreYou}–${scoreThem}`,'flag delivered home','learn');
+    speak(`Capture! Score ${scoreYou} to ${scoreThem}.`);
+    if(scoreYou>=WIN_SCORE) endGame(true);
+  }
+  if(u.team==='enemy'&&u.hasFlag&&dist(u,HOME_E)<40){
+    scoreThem++; pf.carrier=null;u.hasFlag=false;pf.x=HOME_P.x;pf.y=HOME_P.y;
+    logEv('🏆 CAPTURE',`enemy scores. ${scoreYou}–${scoreThem}`,'flag delivered','hot');
+    speak(`Enemy captured our flag. ${scoreYou} to ${scoreThem}.`);
+    if(scoreThem>=WIN_SCORE) endGame(false);
+  }
+  // carried flag follows
+  if(u.hasFlag){const f=u.team==='player'?ef:pf;f.x=u.x;f.y=u.y-18;}
+}
+function kill(victim,killer){
+  victim.hp=0;victim.respawnIn=8;victim.state='idle';victim.queue=[];victim.tx=victim.ty=null;
+  if(victim.hasFlag){
+    victim.hasFlag=false;
+    const f=victim.team==='player'?flags.enemy:flags.player;
+    f.carrier=null;f.x=victim.x;f.y=victim.y; // dropped where they died
+    logEv('💀 carrier down','flag dropped at the body','someone grab it!','hot');
+  }
+  logEv('💥 down',`${victim.team} unit eliminated by ${killer.team}`,'respawn in 8s','');
+}
+function endGame(won){
+  gameOver=true;
+  document.getElementById('scoreYou').textContent=scoreYou;
+  document.getElementById('scoreThem').textContent=scoreThem;
+  logEv(won?'🏆 VICTORY':'💀 DEFEAT',`final ${scoreYou}–${scoreThem}`,won?'squad takes the season':'the enemy takes it','learn');
+  speak(won?'Victory! Your squad takes it.':'Defeat. The enemy takes the flag.');
+  tutorSay(won?'Champions. Hit "new map" for another season.':'Good fight. New map, new season — your squad remembers what it learned.',false);
+  renderHUD();
+}
+
+/* ================= RENDER ================= */
+const cv=document.getElementById('map'),ctx=cv.getContext('2d');
+let W=800,H=600;
+function resize(){
+  const w=cv.parentElement.clientWidth,h=cv.parentElement.clientHeight;
+  cv.width=w*devicePixelRatio;cv.height=h*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);W=w;H=h;
+}
+addEventListener('resize',resize);
+const sx=x=>x/W_WORLD*W, sy=y=>y/H_WORLD*H, ss=v=>v/W_WORLD*W;
+
+function draw(){
+  ctx.fillStyle='#04140c';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(93,240,138,.07)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // mid line
+  ctx.strokeStyle='rgba(125,147,168,.25)';ctx.setLineDash([8,6]);
+  ctx.beginPath();ctx.moveTo(sx(450),0);ctx.lineTo(sx(450),H);ctx.stroke();ctx.setLineDash([]);
+  // bases
+  for(const [bx,team] of [[HOME_P,'player'],[HOME_E,'enemy']]){
+    ctx.strokeStyle=team==='player'?'rgba(93,240,138,.5)':'rgba(255,90,90,.5)';
+    ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx(bx.x),sy(bx.y),ss(46),0,7);ctx.stroke();
+  }
+  // obstacles
+  for(const o of obstacles){
+    ctx.fillStyle='#122b1c';ctx.beginPath();ctx.arc(sx(o.x),sy(o.y),ss(o.r),0,7);ctx.fill();
+    ctx.strokeStyle='#2c6b45';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  // flags
+  drawFlag(flags.player,'#5df08a','YOU');drawFlag(flags.enemy,'#ff5a5a','FOE');
+  // units
+  for(const u of units){
+    if(u.respawnIn>0) continue;
+    const px=sx(u.x),py=sy(u.y),r=ss(11);
+    // selection ring if has orders
+    if(u.queue.length||u.state!=='idle'){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.arc(px,py,r+5,0,7);ctx.stroke();}
+    // body
+    ctx.fillStyle=u.team==='player'?'#d7e6f2':'#5a4a6e';
+    ctx.beginPath();ctx.arc(px,py,r,0,7);ctx.fill();
+    // hat
+    const hatCol=u.team==='player'?HAT_COLORS[u.hat]:'#8a6de8';
+    ctx.fillStyle=hatCol;
+    ctx.beginPath();ctx.arc(px,py-r*0.55,r*0.62,Math.PI,0);ctx.fill();
+    ctx.fillRect(px-r*0.62,py-r*0.55,r*1.24,3);
+    // flag carrier marker
+    if(u.hasFlag){ctx.fillStyle='#ffd942';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText('⚑',px,py-r-14);}
+    // hp bar
+    ctx.fillStyle='#333';ctx.fillRect(px-r,py+r+4,r*2,3);
+    ctx.fillStyle=u.hp>50?'#5df08a':u.hp>25?'#f5b942':'#ff5a5a';
+    ctx.fillRect(px-r,py+r+4,r*2*Math.max(0,u.hp)/u.maxHp,3);
+    // order line
+    if(u.tx!=null){ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(sx(u.tx),sy(u.ty));ctx.stroke();ctx.setLineDash([]);}
+    // label
+    ctx.fillStyle='#d7e6f2';ctx.font='9px monospace';ctx.textAlign='center';
+    ctx.fillText(u.team==='player'?u.hat.toUpperCase():'FOE',px,py+r+16);
+    if(u.state!=='idle'){ctx.fillStyle='#7d93a8';ctx.fillText(u.state,px,py+r+27);}
+  }
+}
+function drawFlag(f,col,tag){
+  if(f.carrier) return; // drawn on carrier
+  const px=sx(f.x),py=sy(f.y);
+  ctx.strokeStyle=col;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py-22);ctx.stroke();
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(px,py-22);ctx.lineTo(px+14,py-17);ctx.lineTo(px,py-12);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#7d93a8';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(tag,px,py+12);
+}
+function renderHUD(){
+  document.getElementById('h-flag').textContent=
+    (flags.enemy.carrier?'⚑ THEIR flag: carried!':`their flag @ (${Math.round(flags.enemy.x)},${Math.round(flags.enemy.y)})`);
+  const alive=units.filter(u=>u.team==='player'&&u.respawnIn<=0).length;
+  document.getElementById('h-units').textContent=alive+'/4 alive';
+  document.getElementById('h-score').textContent=scoreYou+'–'+scoreThem;
+  document.getElementById('scoreYou').textContent=scoreYou;
+  document.getElementById('scoreThem').textContent=scoreThem;
+}
+
+/* ================= MAIN LOOP ================= */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(!gameOver){
+    for(const u of units) stepUnit(u,dt);
+    enemyAI();
+  }
+  draw();renderHUD();
+  requestAnimationFrame(frame);
+}
+
+/* ================= VOICE ================= */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const ptt=document.getElementById('ptt');
+let rec=null,listening=false;
+if(!SR){
+  ptt.disabled=true;ptt.textContent='🎙 voice not supported — type below';
+  logEv('system','Web Speech API unavailable','use the text box','hot');
+}else{
+  rec=new SR();rec.lang='en-US';rec.interimResults=false;rec.maxAlternatives=1;
+  rec.onresult=e=>{handleCommand(e.results[0][0].transcript);};
+  rec.onerror=e=>{logEv('mic','error: '+e.error,'check mic permission','hot');stopListen();};
+  rec.onend=()=>{if(listening)stopListen();};
+  const startListen=()=>{try{rec.start();}catch(e){}listening=true;ptt.classList.add('listening');ptt.textContent='🔴 LISTENING…';};
+  const stopListen=()=>{try{rec.stop();}catch(e){}listening=false;ptt.classList.remove('listening');ptt.textContent='🎙 HOLD TO TALK';};
+  window.stopListen=stopListen;
+  ptt.addEventListener('pointerdown',e=>{e.preventDefault();unlockAudio();startListen();});
+  ptt.addEventListener('pointerup',stopListen);
+  ptt.addEventListener('pointerleave',()=>{if(listening)stopListen();});
+}
+document.getElementById('typed').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.value.trim()){ unlockAudio(); handleCommand(e.target.value.trim()); e.target.value=''; }
+});
+document.getElementById('sleepbtn').addEventListener('click',()=>{
+  let n=0;
+  for(const k of Object.keys(patterns)) if(!patStatus(k)){patterns[k].uses=LEARN_AFTER;n++;}
+  for(const k of Object.keys(UNLOCKED)) if(!UNLOCKED[k]){UNLOCKED[k]=true;n++;}
+  renderLearn();
+  document.getElementById('ch-attack').innerHTML='<b>attack</b> [nearest enemy / their flag]';
+  document.getElementById('ch-defend').innerHTML='<b>defend</b> [guards our flag]';
+  document.getElementById('ch-patrol').innerHTML='<b>patrol</b> [our flag ↔ center]';
+  qlight('sleep',1500);
+  logEv('🌙 sleep cycle',`${n} items distilled — all verbs unlocked`,'the Jev dissolves into the voice','local');
+  speak('Sleep cycle complete. Your squad knows everything.');
+});
+document.getElementById('newmap').addEventListener('click',()=>{
+  genMap(mapSeed+1);spawnUnits();
+  scoreYou=0;scoreThem=0;
+  logEv('🔄 new map','map #'+mapSeed+' generated','procedural terrain, fresh season','local');
+  tutorSay('New season, new map. Your squad remembers its training — move and stop are reflexes now.');
+});
+
+/* ================= BOOT ================= */
+genMap(1);spawnUnits();renderLearn();resize();frame(performance.now());
+logEv('welcome','COLOR SQUAD · 4 units · capture the flag','level 1: your squad only knows <b>move</b> and <b>stop</b>','');
+setTimeout(()=>tutorSay('Commander. Your squad knows two orders: move and stop. Say "Red, move to center" — or "all move to center". I\'ll teach them more as they earn it.',true),800);
+setTimeout(()=>{['ear','router','judge','prism'].forEach((id,i)=>setTimeout(()=>qlight(id,500),i*300));},500);
+</script>
+</body>
+</html>
