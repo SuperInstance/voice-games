@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COLOR SQUAD — Tournament Demo</title>
+<style>
+:root{
+  --bg:#0b0e14; --panel:#131926; --line:#232d42; --txt:#e8edf6; --dim:#8b96ad;
+  --a:#ff6b6b; --b:#45b7ff; --acc:#ffd60a; --good:#46c46a; --warn:#ff9f0a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-text-size-adjust:100%}
+header{padding:12px 16px;border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:6px 22px;align-items:baseline}
+h1{font-size:18px;margin:0;letter-spacing:.5px;font-weight:700}
+h1 .accent{color:var(--acc)}
+.meta{color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
+.meta b{color:var(--txt);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:12px 14px 48px}
+.board{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.side{flex:1 1 180px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;min-width:170px}
+.side-a{border-top:3px solid var(--a)}
+.side-b{border-top:3px solid var(--b)}
+.side-tag{font-size:11px;letter-spacing:2px;color:var(--dim)}
+.side-a .side-tag{color:var(--a)} .side-b .side-tag{color:var(--b)}
+.strat{font-size:20px;font-weight:700;margin:2px 0 0}
+.strat small{display:block;font-size:11px;color:var(--dim);font-weight:400;margin-top:2px}
+.score{font-size:44px;font-weight:800;line-height:1.1;margin:6px 0;
+  font-variant-numeric:tabular-nums}
+.calls{font-size:13px;color:var(--txt);font-variant-numeric:tabular-nums}
+.calls b{font-weight:700}
+.tiers{margin-top:10px;font-size:12px;color:var(--dim);line-height:1.7}
+.tiers b{color:var(--txt);font-weight:600}
+.tiers .n{color:var(--acc);font-variant-numeric:tabular-nums}
+.lastcall{margin-top:8px;font-size:11.5px;color:var(--dim);line-height:1.5;min-height:34px}
+.lastcall b{color:var(--txt)}
+.exh{margin-top:6px;font-size:12px;color:var(--warn);font-weight:600;display:none}
+.stage{flex:3 1 480px;min-width:280px;position:relative}
+canvas#field{width:100%;height:auto;display:block;border-radius:12px;
+  border:1px solid var(--line);background:#0b0f18;touch-action:manipulation}
+.banner{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(5,8,14,.74);border-radius:12px;z-index:5;padding:16px}
+.banner-card{background:#161d2c;border:1px solid var(--line);border-radius:14px;
+  padding:22px 30px;text-align:center;max-width:92%;
+  box-shadow:0 12px 48px rgba(0,0,0,.55)}
+.banner-title{font-size:26px;font-weight:800;margin:0 0 6px}
+.banner-score{font-size:18px;color:var(--dim);margin-bottom:12px;font-variant-numeric:tabular-nums}
+.banner-score b{color:var(--txt)}
+.banner-calls{font-size:13px;line-height:1.9;color:var(--dim);font-variant-numeric:tabular-nums}
+.banner-calls b{color:var(--txt)}
+.banner-hint{margin-top:14px;font-size:12px;color:var(--dim)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.controls label{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+select,button{font:inherit;color:var(--txt);background:#1a2233;border:1px solid var(--line);
+  border-radius:8px;padding:8px 12px;font-size:14px}
+select{max-width:170px}
+button{cursor:pointer;font-weight:600}
+button:hover{border-color:#3b4a6b;background:#202a40}
+button.primary{background:#2a3a12;border-color:#5a7a2a;color:#eaffea}
+button.primary:hover{background:#354d17}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;padding:8px 14px;color:var(--dim)}
+.seg button.on{background:#2b3a58;color:var(--txt)}
+.feedwrap{margin-top:4px}
+.feedwrap h2{font-size:13px;color:var(--dim);margin:0 0 6px;letter-spacing:1px;font-weight:600}
+#feed{background:#0d121c;border:1px solid var(--line);border-radius:12px;
+  height:150px;overflow-y:auto;padding:8px 12px;font-size:12.5px;line-height:1.75;
+  font-variant-numeric:tabular-nums}
+#feed .t{color:var(--dim);margin-right:6px}
+#feed .sys{color:var(--acc)}
+#feed .captured{color:var(--good);font-weight:600}
+#feed .flag_stolen{color:#ffb3b3}
+#feed .flag_dropped{color:var(--warn)}
+.legend{margin-top:10px;font-size:12px;color:var(--dim);line-height:1.8}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 10px;
+  vertical-align:baseline}
+#fatal{display:none;background:#3a1414;border:1px solid #7a2a2a;color:#ffd9d9;
+  border-radius:10px;padding:12px 16px;margin:12px 0;font-size:14px}
+footer{margin-top:22px;font-size:11.5px;color:var(--dim);line-height:1.7}
+@media (max-width:760px){
+  .score{font-size:34px}
+  .side{flex:1 1 44%}
+  .banner-title{font-size:21px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="accent">⚑</span> COLOR SQUAD — tournament demo</h1>
+  <span class="meta">seed <b id="seed">–</b></span>
+  <span class="meta">tick <b id="tick">0</b> / 24000</span>
+  <span class="meta">clock <b id="clock">0:00</b></span>
+</header>
+<main>
+  <div id="fatal"></div>
+  <div class="board">
+    <div class="side side-a">
+      <div class="side-tag">SIDE A</div>
+      <div class="strat" id="name-a">–<small id="desc-a"></small></div>
+      <div class="score" id="score-a">0</div>
+      <div class="calls" id="calls-a">–</div>
+      <div class="tiers">
+        <div><b>smart:</b> grand plan + rare calls <span class="n" id="smart-a"></span></div>
+        <div><b>cheap:</b> board tweaks every 900 ticks <span class="n" id="cheap-a"></span></div>
+      </div>
+      <div class="lastcall" id="last-a"></div>
+      <div class="exh" id="exh-a">⚠ budget exhausted — reflex only</div>
+    </div>
+    <div class="stage">
+      <canvas id="field"></canvas>
+      <div class="banner" id="banner">
+        <div class="banner-card">
+          <p class="banner-title" id="banner-title">–</p>
+          <p class="banner-score" id="banner-score">–</p>
+          <div class="banner-calls" id="banner-calls"></div>
+          <p class="banner-hint">Run again for a fresh seed — or replay this seed to watch it twice.</p>
+        </div>
+      </div>
+    </div>
+    <div class="side side-b">
+      <div class="side-tag">SIDE B</div>
+      <div class="strat" id="name-b">–<small id="desc-b"></small></div>
+      <div class="score" id="score-b">0</div>
+      <div class="calls" id="calls-b">–</div>
+      <div class="tiers">
+        <div><b>smart:</b> grand plan + rare calls <span class="n" id="smart-b"></span></div>
+        <div><b>cheap:</b> board tweaks every 900 ticks <span class="n" id="cheap-b"></span></div>
+      </div>
+      <div class="lastcall" id="last-b"></div>
+      <div class="exh" id="exh-b">⚠ budget exhausted — reflex only</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label>A <select id="sel-a"></select></label>
+    <label>B <select id="sel-b"></select></label>
+    <button id="run" class="primary">▶ Run match</button>
+    <button id="again">↻ Run again (new seed)</button>
+    <label>speed
+      <span class="seg">
+        <button id="spd1">1×</button><button id="spd4" class="on">4×</button>
+      </span>
+    </label>
+  </div>
+
+  <div class="feedwrap">
+    <h2>MATCH FEED</h2>
+    <div id="feed"></div>
+  </div>
+
+  <div class="legend">
+    <span class="sw" style="background:#ff6b6b"></span>ring = side A
+    <span class="sw" style="background:#45b7ff"></span>ring = side B
+    <span class="sw" style="background:#e5484d"></span><span class="sw" style="background:#3e8ef7"></span><span class="sw" style="background:#46c46a"></span><span class="sw" style="background:#f5c518"></span>disc = unit color
+    · ⚑ flag &nbsp;·&nbsp; dashed circle = capture zone &nbsp;·&nbsp; first to 3 captures wins
+  </div>
+
+  <footer>
+    Headless engine ported 1:1 from the tournament runner (seeded RNG, 4v4 flag match, win at 3).
+    Pulse calls are simulated — no network, no spend. Same seed ⇒ same match, bit for bit.
+  </footer>
+</main>
+<script>
+// engine.js — GENERATED by build.js from tournament-runner/game.js,
+// strategy.js, pulse.js and worldview() from run.js. Pure logic, no DOM.
+(function (root) {
+'use strict';
+// game.js — headless COLOR SQUAD core.
+// Pure Node, no DOM, no browser. Deterministic: every match is replayable
+// from its seed. Rules ported from ~/workspace/voice-rts-prototype/index.html
+// (authoritative), then symmetrized for tournament play (see README "Rule
+// resolutions").
+'use strict';
+
+const W = 900, H = 650;
+const HOME = { A: { x: 90, y: 325 }, B: { x: 810, y: 325 } };
+const MID = { x: 450, y: 325 };
+const WIN_SCORE = 3;
+const DT = 1 / 60;                 // fixed sim step (60 Hz, matches browser frame rate)
+const RESPAWN_S = 8;               // 8s respawn, per browser
+const PICKUP_R = 24;               // flag pickup radius
+const CAPTURE_R = 40;              // capture radius around home
+const ENGAGE_R = 130;              // acquire-fight radius for attack/defend/patrol
+const SELF_DEF_R = 60;             // self-defense radius for any unit
+const MELEE_R = 70;                // close-to-melee distance
+const DPS = 16;                    // damage per second at melee (tournament balance; browser used 22)
+const ARRIVE_R = 10;               // waypoint arrival radius
+const SPEED = 1.5;                 // unit speed (symmetric; browser used 1.6/1.35)
+const COLORS = ['red', 'blue', 'green', 'yellow'];
+const PLACES = {
+  north: { x: 450, y: 80 }, south: { x: 450, y: 570 },
+  east: { x: 700, y: 325 }, west: { x: 200, y: 325 },
+  center: MID, middle: MID,
+};
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+class Game {
+  constructor(seed) {
+    this.seed = seed >>> 0;
+    this.rng = mulberry32((this.seed * 9973 + 7) >>> 0);
+    this.tickN = 0;
+    this.score = { A: 0, B: 0 };
+    this.over = false;
+    this.winner = null;            // 'A' | 'B' | 'draw'
+    this.events = [];
+    this._genMap();
+    this._spawn();
+  }
+
+  _genMap() {
+    this.obstacles = [];
+    const rnd = this.rng;
+    for (let i = 0; i < 14; i++) {
+      const x = 180 + rnd() * 540, y = 70 + rnd() * 510, r = 18 + rnd() * 30;
+      if (Math.hypot(x - HOME.A.x, y - HOME.A.y) < 90) continue;
+      if (Math.hypot(x - HOME.B.x, y - HOME.B.y) < 90) continue;
+      if (Math.hypot(x - MID.x, y - MID.y) < 70) continue;
+      // tournament rule: keep obstacles separated so walkable gaps always
+      // exist (the browser's map can spawn overlapping pairs whose crease
+      // traps units no steering can escape — there a human steers around).
+      let ok = true;
+      for (const o of this.obstacles) {
+        if (Math.hypot(x - o.x, y - o.y) < r + o.r + 50) { ok = false; break; }
+      }
+      if (!ok) continue;
+      this.obstacles.push({ x, y, r });
+    }
+  }
+
+  _spawn() {
+    this.units = [];
+    const spotsA = [[70, 220], [70, 325], [70, 430], [140, 325]];
+    const spotsB = [[830, 220], [830, 325], [830, 430], [760, 325]];
+    const mk = (team, color, i) => {
+      const s = team === 'A' ? spotsA[i] : spotsB[i];
+      return {
+        id: `${team}-${color}`, team, color, x: s[0], y: s[1],
+        hp: 100, maxHp: 100, state: 'idle',
+        tx: null, ty: null, hasFlag: false, respawnIn: 0,
+        patrolA: null, patrolB: null, patrolDir: 1,
+        speed: SPEED, queue: [],
+      };
+    };
+    COLORS.forEach((c, i) => this.units.push(mk('A', c, i)));
+    COLORS.forEach((c, i) => this.units.push(mk('B', c, i)));
+    this.flags = {
+      A: { x: HOME.A.x, y: HOME.A.y, carrier: null },  // flag A lives at A's home; B steals it
+      B: { x: HOME.B.x, y: HOME.B.y, carrier: null },
+    };
+  }
+
+  alive(team) { return this.units.filter(u => u.team === team && u.respawnIn <= 0); }
+  foesOf(u) { return this.units.filter(e => e.team !== u.team && e.respawnIn <= 0); }
+
+  _nearest(u, list) {
+    let best = null, bd = 1e9;
+    for (const e of list) { const d = dist(u, e); if (d < bd) { bd = d; best = e; } }
+    return best;
+  }
+
+  _blocked(x, y) {
+    for (const o of this.obstacles) if (Math.hypot(x - o.x, y - o.y) < o.r + 6) return true;
+    return false;
+  }
+
+  // One movement step toward (tx,ty) with deterministic obstacle avoidance.
+  // The browser's slide logic dead-ends when an obstacle sits on the direct
+  // line (a human would steer around it); headless scripts can't, so the
+  // engine probes headings 0, ±20°, ±40°, ±60°, ±90°, 180° and takes the
+  // first unblocked step. Deterministic, no RNG.
+  _stepToward(u, tx, ty, dt) {
+    const dx = tx - u.x, dy = ty - u.y;
+    const base = Math.atan2(dy, dx);
+    const sp = u.speed * dt * 60;
+    const probes = [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.6, -1.6, Math.PI];
+    for (const a of probes) {
+      const nx = u.x + Math.cos(base + a) * sp, ny = u.y + Math.sin(base + a) * sp;
+      if (!this._blocked(nx, ny)) {
+        u.x = Math.max(8, Math.min(W - 8, nx));
+        u.y = Math.max(8, Math.min(H - 8, ny));
+        return;
+      }
+    }
+  }
+
+  // ---- orders (mirrors browser startNext/issueOrder) ----
+  startNext(u) {
+    const o = u.queue[0];
+    if (!o) { u.state = 'idle'; return; }
+    const other = u.team === 'A' ? 'B' : 'A';
+    switch (o.verb) {
+      case 'move':
+        u.state = 'move';
+        u.tx = o.arg ? o.arg.x : MID.x; u.ty = o.arg ? o.arg.y : MID.y;
+        break;
+      case 'stop':
+        u.queue = []; u.state = 'idle'; u.tx = u.ty = null;
+        break;
+      case 'attack': {
+        u.state = 'attack';
+        const foe = this._nearest(u, this.foesOf(u));
+        if (o.arg && o.arg.isTheirFlag) { u.tx = this.flags[other].x; u.ty = this.flags[other].y; }
+        else { u.tx = foe ? foe.x : MID.x; u.ty = foe ? foe.y : MID.y; }
+        break;
+      }
+      case 'defend':
+        u.state = 'defend';
+        u.tx = this.flags[u.team].x; u.ty = this.flags[u.team].y;
+        break;
+      case 'patrol':
+        u.state = 'patrol';
+        u.patrolA = { x: this.flags[u.team].x, y: this.flags[u.team].y };
+        u.patrolB = { x: MID.x, y: MID.y };
+        u.patrolDir = 1;
+        u.tx = u.patrolB.x; u.ty = u.patrolB.y;
+        break;
+      default:
+        u.state = 'idle'; u.tx = u.ty = null;
+    }
+  }
+
+  _kill(victim) {
+    victim.hp = 0; victim.respawnIn = RESPAWN_S;
+    victim.state = 'idle'; victim.queue = []; victim.tx = victim.ty = null;
+    this.events.push({ type: 'unit_down', team: victim.team, id: victim.id, x: +victim.x.toFixed(1), y: +victim.y.toFixed(1) });
+    if (victim.hasFlag) {
+      victim.hasFlag = false;
+      const other = victim.team === 'A' ? 'B' : 'A';
+      const f = this.flags[other];           // the flag this unit was carrying
+      f.carrier = null; f.x = victim.x; f.y = victim.y;
+      this.events.push({ type: 'flag_dropped', flag: other, x: +victim.x.toFixed(1), y: +victim.y.toFixed(1), byTeam: victim.team });
+    }
+  }
+
+  _stepUnit(u, dt) {
+    if (u.respawnIn > 0) {
+      u.respawnIn -= dt;
+      if (u.respawnIn <= 0) {
+        u.hp = u.maxHp; u.hasFlag = false;
+        const h = HOME[u.team];
+        u.x = h.x + (this.rng() * 40 - 20);
+        u.y = h.y + (this.rng() * 120 - 60);
+        u.state = 'idle'; u.queue = [];
+      }
+      return;
+    }
+    // movement
+    if (u.tx != null) {
+      const dx = u.tx - u.x, dy = u.ty - u.y, d = Math.hypot(dx, dy);
+      if (d < ARRIVE_R) {
+        u.tx = u.ty = null;
+        if (u.state === 'move') { u.state = 'idle'; u.queue.shift(); this.startNext(u); }
+        else if (u.state === 'patrol') {
+          u.patrolDir *= -1;
+          const t = u.patrolDir > 0 ? u.patrolB : u.patrolA;
+          u.tx = t.x; u.ty = t.y;
+        }
+      } else {
+        this._stepToward(u, u.tx, u.ty, dt);
+      }
+    }
+    // combat
+    const foe = this._nearest(u, this.foesOf(u));
+    const wantFight = u.state === 'attack' || u.state === 'defend' || u.state === 'patrol' || u.hasFlag;
+    if (foe && dist(u, foe) < ENGAGE_R && (wantFight || dist(u, foe) < SELF_DEF_R)) {
+      if (dist(u, foe) > MELEE_R) {
+        this._stepToward(u, foe.x, foe.y, dt);
+      } else {
+        foe.hp -= DPS * dt;
+        if (foe.hp <= 0) this._kill(foe);
+      }
+    } else if (u.state === 'attack') {
+      if (!foe || foe.respawnIn > 0) { u.queue.shift(); this.startNext(u); }
+    }
+    // flag pickup / capture
+    const other = u.team === 'A' ? 'B' : 'A';
+    const ef = this.flags[other];
+    if (!u.hasFlag && !ef.carrier && dist(u, ef) < PICKUP_R) {
+      ef.carrier = u; u.hasFlag = true;
+      this.events.push({ type: 'flag_stolen', by: u.team, id: u.id, x: +u.x.toFixed(1), y: +u.y.toFixed(1) });
+    }
+    if (u.hasFlag && dist(u, HOME[u.team]) < CAPTURE_R) {
+      this.score[u.team]++;
+      ef.carrier = null; u.hasFlag = false;
+      ef.x = HOME[other].x; ef.y = HOME[other].y;
+      this.events.push({ type: 'captured', by: u.team, score: { ...this.score } });
+      if (this.score[u.team] >= WIN_SCORE) this._end(u.team);
+    }
+    if (u.hasFlag) { ef.x = u.x; ef.y = u.y - 18; }
+  }
+
+  _end(winner) {
+    this.over = true;
+    this.winner = winner;
+  }
+
+  // advance one sim tick; returns the tick's events
+  tick() {
+    this.events = [];
+    if (!this.over) {
+      for (const u of this.units) this._stepUnit(u, DT);
+    }
+    this.tickN++;
+    return this.events;
+  }
+
+  // compact per-tick state for replay traces
+  snapshot() {
+    const r1 = v => Math.round(v * 10) / 10;
+    return {
+      t: this.tickN,
+      sa: this.score.A, sb: this.score.B,
+      u: this.units.map(u => [r1(u.x), r1(u.y), Math.round(u.hp), u.state, u.hasFlag ? 1 : 0, u.respawnIn > 0 ? 1 : 0]),
+      f: [r1(this.flags.A.x), r1(this.flags.A.y), this.flags.A.carrier ? this.flags.A.carrier.id : null,
+          r1(this.flags.B.x), r1(this.flags.B.y), this.flags.B.carrier ? this.flags.B.carrier.id : null],
+    };
+  }
+
+  // tiebreak if max ticks hit without a winner: captures, then total HP
+  decideDraw() {
+    if (this.over) return this.winner;
+    if (this.score.A !== this.score.B) return this.score.A > this.score.B ? 'A' : 'B';
+    const hpA = this.alive('A').reduce((s, u) => s + u.hp, 0);
+    const hpB = this.alive('B').reduce((s, u) => s + u.hp, 0);
+    if (hpA !== hpB) return hpA > hpB ? 'A' : 'B';
+    return 'draw';
+  }
+}
+
+
+// strategy.js — strategy script loader, validator, and controller.
+// A strategy is JSON (see STRATEGY-FORMAT.md). The controller turns scripted
+// orders into game orders. on_start / on_event are REFLEX — free, always
+// available. The pulse (pulse.js) delivers the scheduled "LLM calls".
+'use strict';
+
+const VERBS = ['move', 'attack', 'defend', 'patrol', 'stop'];
+const SELECTORS = ['all', 'idle', 'carrier', 'nearest', 'pair', ...COLORS];
+const EVENT_NAMES = ['flag_stolen', 'flag_taken', 'unit_down', 'flag_dropped',
+  'their_flag_dropped', 'we_scored', 'they_scored', 'captured'];
+const EVENT_COOLDOWN_TICKS = 300;   // same trigger refires at most every 5s (60Hz)
+
+function isObj(x) { return x && typeof x === 'object' && !Array.isArray(x); }
+
+// ---- validation ----
+function validateStrategy(s) {
+  const errs = [];
+  if (!isObj(s)) return ['strategy must be a JSON object'];
+  if (typeof s.name !== 'string' || !s.name) errs.push('missing "name"');
+  if (!Array.isArray(s.on_start)) errs.push('"on_start" must be an array of orders');
+  const checkOrder = (o, where, i) => {
+    if (!isObj(o)) { errs.push(`${where}[${i}]: not an object`); return; }
+    if (!SELECTORS.includes(o.select)) errs.push(`${where}[${i}]: bad select "${o.select}"`);
+    if (!VERBS.includes(o.verb)) errs.push(`${where}[${i}]: bad verb "${o.verb}"`);
+    if (o.then !== undefined) {
+      if (!isObj(o.then)) errs.push(`${where}[${i}]: "then" must be an order object`);
+      else checkOrder({ select: o.select, ...o.then }, where + '[then]', i);
+    }
+  };
+  (s.on_start || []).forEach((o, i) => checkOrder(o, 'on_start', i));
+  if (s.on_event !== undefined) {
+    if (!isObj(s.on_event)) errs.push('"on_event" must be an object');
+    else for (const [k, v] of Object.entries(s.on_event)) {
+      if (!EVENT_NAMES.includes(k)) errs.push(`on_event: unknown event "${k}"`);
+      else if (!Array.isArray(v)) errs.push(`on_event.${k}: must be an array of orders`);
+      else v.forEach((o, i) => checkOrder(o, `on_event.${k}`, i));
+    }
+  }
+  if (s.mid_match_plans !== undefined) {
+    if (!Array.isArray(s.mid_match_plans)) errs.push('"mid_match_plans" must be an array of order arrays');
+    else s.mid_match_plans.forEach((p, pi) => {
+      if (!Array.isArray(p)) errs.push(`mid_match_plans[${pi}]: must be an order array`);
+      else p.forEach((o, i) => checkOrder(o, `mid_match_plans[${pi}]`, i));
+    });
+  }
+  if (s.budget !== undefined && (!isObj(s.budget) || typeof s.budget.calls !== 'number'))
+    errs.push('"budget" must be an object with numeric "calls"');
+  return errs;
+}
+
+// ---- controller ----
+class StrategyController {
+  constructor(strategy, team, game) {
+    this.s = strategy;
+    this.team = team;                 // 'A' | 'B'
+    this.game = game;
+    this.other = team === 'A' ? 'B' : 'A';
+    this.cooldowns = {};              // event name -> tick when it may fire again
+    this.stats = { reflexTriggers: 0, ordersIssued: 0 };
+  }
+
+  ownUnits() { return this.game.units.filter(u => u.team === this.team); }
+
+  // target names -> coordinates. *_flag are DYNAMIC (current flag position).
+  resolveTarget(name) {
+    if (!name) return null;
+    const g = this.game, T = this.team, O = this.other;
+    const k = String(name).toLowerCase();
+    if (PLACES[k]) return { ...PLACES[k] };
+    if (k === 'our_flag') return { x: g.flags[T].x, y: g.flags[T].y };
+    if (k === 'their_flag' || k === 'enemy_flag') {
+      const f = g.flags[O];
+      return { x: f.x, y: f.y, isTheirFlag: true };
+    }
+    if (k === 'home' || k === 'our_base' || k === 'base') return { ...HOME[T] };
+    if (k === 'their_base') return { ...HOME[O] };
+    return null;
+  }
+
+  // selector -> units. focal {x,y} used by "nearest".
+  resolveUnits(selector, focal) {
+    const alive = this.ownUnits().filter(u => u.respawnIn <= 0);
+    const f = focal || HOME[this.team];
+    switch (selector) {
+      case 'all': return alive;
+      case 'idle': return alive.filter(u => u.state === 'idle' && u.queue.length === 0);
+      case 'carrier': {
+        const c = alive.find(u => u.hasFlag);
+        return c ? [c] : [];
+      }
+      case 'nearest': {
+        let best = null, bd = 1e9;
+        for (const u of alive) { const d = Math.hypot(u.x - f.x, u.y - f.y); if (d < bd) { bd = d; best = u; } }
+        return best ? [best] : [];
+      }
+      case 'pair': { // two nearest units to the focal point (commits a wave, not a lone runner)
+        return alive
+          .map(u => ({ u, d: Math.hypot(u.x - f.x, u.y - f.y) }))
+          .sort((a, b) => a.d - b.d)
+          .slice(0, 2)
+          .map(e => e.u);
+      }
+      default: { // a color
+        const u = alive.find(u => u.color === selector);
+        return u ? [u] : [];
+      }
+    }
+  }
+
+  // one order (+ optional `then` chain) onto a unit; new orders supersede old.
+  applyOrderTo(unit, order) {
+    const chain = [];
+    let o = order;
+    while (o) {
+      const arg = o.target ? this.resolveTarget(o.target) : null;
+      chain.push({ verb: o.verb, arg });
+      o = o.then;
+    }
+    unit.queue = chain;
+    this.game.startNext(unit);
+    this.stats.ordersIssued++;
+  }
+
+  applyOrders(orders, focal) {
+    for (const o of orders || []) {
+      for (const u of this.resolveUnits(o.select, focal)) this.applyOrderTo(u, o);
+    }
+  }
+
+  // built-in reflex, always on: a carrier with no orders walks home.
+  _carrierReflex() {
+    for (const u of this.ownUnits()) {
+      if (u.hasFlag && u.queue.length === 0 && u.respawnIn <= 0) {
+        this.applyOrderTo(u, { verb: 'move', target: 'home' });
+      }
+    }
+  }
+
+  // ---- event reflexes (free; cooldown-gated) ----
+  onEvents(events, tick) {
+    for (const ev of events) {
+      const keys = this._eventKeys(ev);
+      for (const k of keys) {
+        const orders = (this.s.on_event || {})[k];
+        if (!orders) continue;
+        if ((this.cooldowns[k] || 0) > tick) continue;
+        this.cooldowns[k] = tick + EVENT_COOLDOWN_TICKS;
+        this.stats.reflexTriggers++;
+        this.applyOrders(orders, { x: ev.x ?? HOME[this.team].x, y: ev.y ?? HOME[this.team].y });
+      }
+    }
+    this._carrierReflex();
+  }
+
+  // map raw game events to this side's trigger names
+  _eventKeys(ev) {
+    const T = this.team, keys = [];
+    if (ev.type === 'unit_down' && ev.team === T) keys.push('unit_down');
+    if (ev.type === 'flag_stolen') {
+      if (ev.by !== T) keys.push('flag_stolen', 'flag_taken');       // enemy stole OUR flag
+    }
+    if (ev.type === 'flag_dropped') {
+      if (ev.flag !== T) keys.push('their_flag_dropped');             // THEIR carrier died
+      else keys.push('flag_dropped');
+    }
+    if (ev.type === 'captured') {
+      keys.push('captured');
+      keys.push(ev.by === T ? 'we_scored' : 'they_scored');
+    }
+    return keys;
+  }
+}
+
+
+// pulse.js — the pulse scheduler (spec 2B).
+// Two tiers of simulated "LLM calls" during a match:
+//
+//   cheap tier ("flash"): may fire every cheapEvery ticks. The stub plays the
+//     role of a fast model: one small order tweak based on the current board.
+//   smart tier ("pro"): one grand plan at match start (the strategy's
+//     on_start), plus rare mid-match calls (strategy.mid_match_plans, or a
+//     deterministic score-based fallback).
+//
+// Calls are SIMULATED — no real API, zero spend — but counted and budgeted:
+// when a side hits its total call budget it forfeits the rest and plays on
+// reflex (on_event triggers + built-in carrier reflex) only.
+'use strict';
+
+class PulseSide {
+  constructor(strategy, controller, opts = {}) {
+    this.s = strategy;
+    this.c = controller;
+    this.team = controller.team;
+    this.game = controller.game;
+
+    this.cheapEvery = opts.cheapEvery ?? strategy.pulse?.cheap_every_ticks ?? 900;   // 15s @60Hz
+    this.smartEvery = opts.smartEvery ?? strategy.pulse?.smart_every_ticks ?? 3600;   // 60s @60Hz
+    this.totalBudget = opts.budget ?? strategy.budget?.calls ?? 8;
+    this.smartBudget = opts.smartBudget ?? strategy.pulse?.smart_calls ?? 2;
+    if (this.smartBudget > this.totalBudget) this.smartBudget = this.totalBudget;
+
+    this.used = { cheap: 0, smart: 0 };
+    this.nextCheapAt = this.cheapEvery;
+    this.nextSmartAt = this.smartEvery;
+    this.exhausted = false;
+    this.planIdx = 0;
+    this.callLog = [];   // {tick, tier, note}
+  }
+
+  get totalUsed() { return this.used.cheap + this.used.smart; }
+  get budgetLeft() { return Math.max(0, this.totalBudget - this.totalUsed); }
+
+  _canCall() {
+    if (this.totalUsed >= this.totalBudget) {
+      if (!this.exhausted) { this.exhausted = true; }
+      return false;
+    }
+    return true;
+  }
+
+  // tick 0: the grand plan. It's the script's own opening, so it always
+  // applies; it counts as smart call #1 only while budget remains.
+  grandPlan(tick = 0) {
+    this.c.applyOrders(this.s.on_start || [], HOME[this.team]);
+    if (this._canCall()) {
+      this.used.smart++;
+      this.callLog.push({ tick, tier: 'smart', note: `grand plan: on_start (${(this.s.on_start || []).length} orders)` });
+    } else {
+      this.callLog.push({ tick, tier: 'smart', note: `grand plan applied over budget (free, reflex-only match)` });
+    }
+  }
+
+  // per-tick: fire scheduled calls when due and budgeted.
+  tick(tick, view) {
+    if (this.game.over) return;
+    if (tick >= this.nextCheapAt) {
+      this.nextCheapAt = tick + this.cheapEvery;
+      if (this._canCall()) {
+        const tweak = this._cheapStub(view);
+        this.used.cheap++;
+        this.c.applyOrders(tweak.orders, tweak.focal);
+        this.callLog.push({ tick, tier: 'cheap', note: tweak.note });
+      }
+    }
+    if (tick >= this.nextSmartAt && this.used.smart < this.smartBudget) {
+      this.nextSmartAt = tick + this.smartEvery;
+      if (this._canCall()) {
+        const plan = this._smartStub(view);
+        this.used.smart++;
+        this.c.applyOrders(plan.orders, HOME[this.team]);
+        this.callLog.push({ tick, tier: 'smart', note: plan.note });
+      }
+    }
+  }
+
+  // cheap/flash stub: one small deterministic tweak for the current board.
+  _cheapStub(v) {
+    // 1) enemy carrier exists -> nearest unit converges to attack
+    if (v.enemyCarrier) {
+      return {
+        focal: { x: v.enemyCarrier.x, y: v.enemyCarrier.y },
+        orders: [{ select: 'nearest', verb: 'attack' }],
+        note: `cheap: converge on enemy carrier ${v.enemyCarrier.id}`,
+      };
+    }
+    // 2) our flag loose and UNGUARDED -> nearest secures the drop site.
+    //    (Once a guard is in place, later calls fall through to rule 3 —
+    //    this priority is what breaks both-turtle deadlocks.)
+    if (v.ourFlagDropped && !v.ourFlagGuarded) {
+      return {
+        focal: { x: v.ourFlagDropped.x, y: v.ourFlagDropped.y },
+        orders: [{ select: 'nearest', verb: 'defend' }],
+        note: 'cheap: nearest secures dropped flag',
+      };
+    }
+    // 3) their flag takable (sitting home or dropped loose) and we have no
+    //    carrier -> commit a PAIR to run it
+    if (!v.ourCarrier && (v.theirFlagHome || v.theirFlagDropped)) {
+      const fp = v.theirFlagDropped || v.theirFlag;
+      return {
+        focal: { x: fp.x, y: fp.y },
+        orders: [{ select: 'pair', verb: 'move', target: 'their_flag', then: { verb: 'move', target: 'home' } }],
+        note: v.theirFlagDropped ? 'cheap: pair retries the loose flag' : 'cheap: pair runs the flag',
+      };
+    }
+    // 4) weakest unit reinforced to center
+    const weak = [...v.ownAlive].sort((a, b) => a.hp - b.hp)[0];
+    if (weak) {
+      return {
+        focal: { x: weak.x, y: weak.y },
+        orders: [{ select: weak.color, verb: 'move', target: 'center' }],
+        note: `cheap: ${weak.id} regroups at center`,
+      };
+    }
+    return { focal: null, orders: [], note: 'cheap: nothing to tweak' };
+  }
+
+  // smart/pro stub: next authored mid-match plan, else score-based fallback.
+  _smartStub(v) {
+    const plans = this.s.mid_match_plans || [];
+    if (this.planIdx < plans.length) {
+      const p = plans[this.planIdx++];
+      return { orders: p, note: `smart: mid-match plan #${this.planIdx} (${p.length} orders)` };
+    }
+    const mine = v.score[this.team], theirs = v.score[this.team === 'A' ? 'B' : 'A'];
+    if (mine > theirs) {
+      return { orders: [{ select: 'all', verb: 'defend' }], note: `smart: protect the lead ${mine}-${theirs}` };
+    }
+    return {
+      orders: [{ select: 'all', verb: 'move', target: 'their_flag', then: { verb: 'move', target: 'home' } }],
+      note: `smart: all-out flag run, down ${mine}-${theirs}`,
+    };
+  }
+}
+
+
+function worldview(game, team) {
+  const other = team === 'A' ? 'B' : 'A';
+  const ownAlive = game.units.filter(u => u.team === team && u.respawnIn <= 0);
+  const enemyCarrierU = game.units.find(u => u.team === other && u.hasFlag && u.respawnIn <= 0);
+  const ourCarrierU = game.units.find(u => u.team === team && u.hasFlag && u.respawnIn <= 0);
+  const fOurs = game.flags[team], fTheirs = game.flags[other];
+  const atHome = (f, t) => Math.hypot(f.x - HOME[t].x, f.y - HOME[t].y) < 5;
+  return {
+    score: { ...game.score },
+    ownAlive: ownAlive.map(u => ({ id: u.id, color: u.color, x: u.x, y: u.y, hp: u.hp })),
+    enemyCarrier: enemyCarrierU ? { id: enemyCarrierU.id, x: enemyCarrierU.x, y: enemyCarrierU.y } : null,
+    ourCarrier: ourCarrierU ? { id: ourCarrierU.id, x: ourCarrierU.x, y: ourCarrierU.y } : null,
+    ourFlagDropped: (!fOurs.carrier && !atHome(fOurs, team)) ? { x: fOurs.x, y: fOurs.y } : null,
+    ourFlagGuarded: game.units.some(u => u.team === team && u.respawnIn <= 0 &&
+      Math.hypot(u.x - fOurs.x, u.y - fOurs.y) < 130),
+    theirFlag: { x: fTheirs.x, y: fTheirs.y },
+    theirFlagHome: !fTheirs.carrier && atHome(fTheirs, other),
+    theirFlagDropped: (!fTheirs.carrier && !atHome(fTheirs, other)) ? { x: fTheirs.x, y: fTheirs.y } : null,
+  };
+}
+var __api = { Game, W, H, HOME, MID, WIN_SCORE, DT, COLORS, PLACES, mulberry32, StrategyController, validateStrategy, EVENT_COOLDOWN_TICKS, PulseSide, worldview };
+if (typeof module !== 'undefined' && module.exports) { module.exports = __api; }
+else { root.TournamentEngine = __api; }
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+window.TournamentStrategies = {"red-rush":{"author":"zai","budget":{"calls":24,"per_call_tokens":500},"description":"All-out flag rush. Two runners go for the enemy flag in waves, one escorts, one stays home. When the enemy steals our flag, everyone converges on the carrier.","mid_match_plans":[[{"select":"all","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"}],[{"select":"all","target":"their_flag","verb":"attack"}]],"name":"red-rush","on_event":{"flag_stolen":[{"select":"all","verb":"attack"}],"flag_taken":[{"select":"all","verb":"attack"}],"their_flag_dropped":[{"select":"nearest","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"}],"unit_down":[{"select":"nearest","target":"their_flag","verb":"attack"}]},"on_start":[{"select":"red","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"},{"select":"blue","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"},{"select":"green","target":"their_flag","verb":"attack"},{"select":"yellow","verb":"defend"}],"pulse":{"cheap_every_ticks":900,"smart_calls":2,"smart_every_ticks":3600}},"turtle":{"author":"minimax","budget":{"calls":24,"per_call_tokens":500},"description":"Turtle with a sting. Three units guard home (two hold, one patrols); a lone runner sneaks the enemy flag. Reinforces defense whenever anything goes wrong, counter-grabs loose flags.","mid_match_plans":[[{"select":"red","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"},{"select":"blue","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"},{"select":"green","verb":"defend"},{"select":"yellow","verb":"defend"}],[{"select":"all","verb":"defend"}]],"name":"turtle","on_event":{"flag_stolen":[{"select":"all","verb":"defend"}],"flag_taken":[{"select":"all","verb":"defend"}],"their_flag_dropped":[{"select":"nearest","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"}],"they_scored":[{"select":"idle","verb":"defend"}],"unit_down":[{"select":"nearest","verb":"defend"}]},"on_start":[{"select":"red","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"},{"select":"blue","verb":"defend"},{"select":"green","verb":"defend"},{"select":"yellow","verb":"patrol"}],"pulse":{"cheap_every_ticks":1200,"smart_calls":2,"smart_every_ticks":4200}},"counterpuncher":{"author":"kimi","budget":{"calls":24,"per_call_tokens":500},"description":"Turtle with a hammer. Absorbs pressure with three defenders and a lone runner, then the smart-tier mid-match call delivers one coordinated all-unit strike on the enemy flag — clearing defenders so the cheap-tier pair can walk the flag home.","mid_match_plans":[[{"select":"all","verb":"attack","target":"their_flag"}],[{"select":"all","verb":"defend"}]],"name":"counterpuncher","on_event":{"flag_stolen":[{"select":"all","verb":"defend"}],"flag_taken":[{"select":"all","verb":"defend"}],"their_flag_dropped":[{"select":"nearest","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"}],"they_scored":[{"select":"idle","verb":"defend"}],"unit_down":[{"select":"nearest","verb":"defend"}]},"on_start":[{"select":"red","target":"their_flag","then":{"target":"home","verb":"move"},"verb":"move"},{"select":"blue","verb":"defend"},{"select":"green","verb":"defend"},{"select":"yellow","verb":"patrol"}],"pulse":{"cheap_every_ticks":1200,"smart_calls":2,"smart_every_ticks":4200}}};
+</script>
+<script>
+/* app.js — COLOR SQUAD tournament demo UI.
+ * Browser only. Uses window.TournamentEngine (DOM-free) and
+ * window.TournamentStrategies (inlined JSON). No network, no dependencies.
+ */
+(function () {
+  'use strict';
+
+  var E = window.TournamentEngine;
+  var STRATS = window.TournamentStrategies || {};
+  var ORDER = ['red-rush', 'turtle', 'counterpuncher'].filter(function (n) { return STRATS[n]; });
+
+  var MAX_TICKS = 24000;
+  var PULSE = { budget: 24, smartBudget: 2, cheapEvery: 900, smartEvery: 3600 };
+  var SPEEDS = { '1': 2, '4': 8 };          // sim ticks per frame at each toggle
+  var FEED_MAX = 40;
+
+  function $(id) { return document.getElementById(id); }
+
+  // ---------- boot validation ----------
+  function die(msg) {
+    var f = $('fatal');
+    f.textContent = msg;
+    f.style.display = 'block';
+  }
+  if (!E || typeof E.Game !== 'function' || typeof E.PulseSide !== 'function') {
+    die('Engine failed to load — cannot start the demo.');
+    return;
+  }
+  if (!ORDER.length) { die('No strategies loaded — cannot start the demo.'); return; }
+  var bad = [];
+  ORDER.forEach(function (n) {
+    var errs = E.validateStrategy(STRATS[n]);
+    if (errs.length) bad.push(n + ': ' + errs.join('; '));
+  });
+  if (bad.length) { die('Invalid strategy script — ' + bad.join(' | ')); return; }
+
+  // ---------- canvas ----------
+  var LW = 900, LH = 650;
+  var canvas = $('field');
+  var ctx = canvas.getContext('2d');
+  function fitCanvas() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(LW * dpr);
+    canvas.height = Math.round(LH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  if (window.addEventListener) window.addEventListener('resize', fitCanvas);
+  fitCanvas();
+
+  var TEAM = { A: '#ff6b6b', B: '#45b7ff' };
+  var UNITC = { red: '#e5484d', blue: '#3e8ef7', green: '#46c46a', yellow: '#f5c518' };
+
+  // ---------- match state ----------
+  var match = null;
+  var speedKey = '4';
+
+  function fmtClock(tick) {
+    var s = Math.floor(tick / 60);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function newMatch(seed, nameA, nameB) {
+    var sA = STRATS[nameA], sB = STRATS[nameB];
+    var game = new E.Game(seed);
+    var cA = new E.StrategyController(sA, 'A', game);
+    var cB = new E.StrategyController(sB, 'B', game);
+    var pA = new E.PulseSide(sA, cA, PULSE);
+    var pB = new E.PulseSide(sB, cB, PULSE);
+    pA.grandPlan(0);
+    pB.grandPlan(0);
+    match = {
+      seed: seed, nameA: nameA, nameB: nameB,
+      game: game, cA: cA, cB: cB, pA: pA, pB: pB,
+      tick: 0, over: false
+    };
+    $('seed').textContent = String(seed);
+    $('name-a').childNodes[0].nodeValue = nameA;
+    $('name-b').childNodes[0].nodeValue = nameB;
+    $('desc-a').textContent = sA.description || '';
+    $('desc-b').textContent = sB.description || '';
+    $('feed').innerHTML = '';
+    $('banner').style.display = 'none';
+    addFeed('match start — ' + nameA + ' (A) vs ' + nameB + ' (B), seed ' + seed, 'sys');
+    updateHud();
+  }
+
+  function stepMatch() {
+    if (!match || match.over) return;
+    var n = SPEEDS[speedKey] || 2;
+    for (var i = 0; i < n && !match.game.over && match.tick < MAX_TICKS; i++) {
+      var events = match.game.tick();
+      for (var j = 0; j < events.length; j++) {
+        var txt = describeEvent(events[j]);
+        if (txt) addFeed('[' + fmtClock(match.tick) + '] ' + txt, events[j].type);
+      }
+      match.cA.onEvents(events, match.tick);
+      match.cB.onEvents(events, match.tick);
+      match.pA.tick(match.tick, E.worldview(match.game, 'A'));
+      match.pB.tick(match.tick, E.worldview(match.game, 'B'));
+      match.tick++;
+    }
+    if (!match.game.over && match.tick >= MAX_TICKS) {
+      match.game.winner = match.game.decideDraw();
+      match.game.over = true;
+    }
+    if (match.game.over) {
+      match.over = true;
+      addFeed('match over — ' + winnerLabel() + ', ' +
+        match.game.score.A + '–' + match.game.score.B, 'sys');
+      showBanner();
+    }
+    updateHud();
+  }
+
+  // ---------- feed ----------
+  function addFeed(text, cls) {
+    var feed = $('feed');
+    var div = document.createElement('div');
+    if (cls) div.className = cls;
+    div.textContent = text;
+    feed.appendChild(div);
+    while (feed.children.length > FEED_MAX) feed.removeChild(feed.firstChild);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function describeEvent(ev) {
+    if (!match) return null;
+    switch (ev.type) {
+      case 'flag_stolen':
+        return '⚑ ' + ev.id + ' stole ' + (ev.by === 'A' ? "B's" : "A's") + ' flag!';
+      case 'flag_dropped':
+        return '⚑ flag ' + ev.flag + ' dropped' +
+          (ev.byTeam ? ' — ' + ev.byTeam + ' carrier down' : '');
+      case 'captured': {
+        var scorer = ev.by === 'A' ? match.nameA : match.nameB;
+        return '★ ' + scorer + ' captures — ' + ev.score.A + '–' + ev.score.B;
+      }
+      default:
+        return null; // unit_down is too noisy for the feed
+    }
+  }
+
+  // ---------- HUD ----------
+  function sideHud(suffix, name, pulse, ctrl) {
+    $('smart-' + suffix).textContent = pulse.used.smart + '/' + pulse.smartBudget;
+    $('cheap-' + suffix).textContent = pulse.used.cheap + '/' +
+      (pulse.totalBudget - pulse.smartBudget);
+    $('calls-' + suffix).innerHTML = '';
+    var b = document.createElement('b');
+    b.textContent = pulse.totalUsed + '/' + pulse.totalBudget;
+    $('calls-' + suffix).appendChild(document.createTextNode('calls '));
+    $('calls-' + suffix).appendChild(b);
+    $('calls-' + suffix).appendChild(document.createTextNode(
+      '  (cheap ' + pulse.used.cheap + ' + smart ' + pulse.used.smart + ')'));
+    var log = pulse.callLog;
+    $('last-' + suffix).innerHTML = '';
+    if (log.length) {
+      var last = log[log.length - 1];
+      var bb = document.createElement('b');
+      bb.textContent = 'last call ';
+      $('last-' + suffix).appendChild(bb);
+      $('last-' + suffix).appendChild(document.createTextNode(
+        '@' + fmtClock(last.tick) + ' · ' + last.tier + ' · ' + last.note));
+    }
+    $('exh-' + suffix).style.display = pulse.exhausted ? 'block' : 'none';
+  }
+
+  function updateHud() {
+    if (!match) return;
+    $('tick').textContent = String(match.tick);
+    $('clock').textContent = fmtClock(match.tick);
+    $('score-a').textContent = String(match.game.score.A);
+    $('score-b').textContent = String(match.game.score.B);
+    sideHud('a', match.nameA, match.pA, match.cA);
+    sideHud('b', match.nameB, match.pB, match.cB);
+  }
+
+  function winnerLabel() {
+    var w = match.game.winner;
+    if (w === 'draw') return 'draw';
+    return (w === 'A' ? match.nameA : match.nameB) + ' wins';
+  }
+
+  function showBanner() {
+    var w = match.game.winner;
+    $('banner-title').textContent = w === 'draw'
+      ? 'Draw'
+      : '🏆 ' + (w === 'A' ? match.nameA : match.nameB) + ' wins';
+    $('banner-score').innerHTML = '';
+    $('banner-score').appendChild(document.createTextNode('Final score  '));
+    var b = document.createElement('b');
+    b.textContent = match.nameA + ' ' + match.game.score.A + ' – ' +
+      match.game.score.B + ' ' + match.nameB;
+    $('banner-score').appendChild(b);
+    var box = $('banner-calls');
+    box.innerHTML = '';
+    [['a', 'A', match.nameA, match.pA, match.cA],
+     ['b', 'B', match.nameB, match.pB, match.cB]].forEach(function (row) {
+      var div = document.createElement('div');
+      var bb = document.createElement('b');
+      bb.textContent = 'side ' + row[1] + ' · ' + row[2];
+      div.appendChild(bb);
+      div.appendChild(document.createTextNode(
+        ' — ' + row[3].totalUsed + '/' + row[3].totalBudget + ' calls' +
+        ' (cheap ' + row[3].used.cheap + ' + smart ' + row[3].used.smart + ')' +
+        ' · ' + row[4].stats.reflexTriggers + ' reflex triggers'));
+      box.appendChild(div);
+    });
+    $('banner').style.display = 'flex';
+  }
+
+  // ---------- rendering ----------
+  function drawFlag(f, color, label) {
+    var x = f.x, y = f.y;
+    ctx.strokeStyle = '#d7dee9';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 22); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 22); ctx.lineTo(x + 16, y - 17); ctx.lineTo(x, y - 12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.font = '9px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + 6, y - 13);
+  }
+
+  function drawUnit(u) {
+    var dead = u.respawnIn > 0;
+    ctx.save();
+    if (dead) ctx.globalAlpha = 0.28;
+    ctx.fillStyle = TEAM[u.team];                       // ring = side
+    ctx.beginPath(); ctx.arc(u.x, u.y, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = UNITC[u.color] || '#ffffff';        // disc = unit color
+    ctx.beginPath(); ctx.arc(u.x, u.y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.beginPath(); ctx.arc(u.x, u.y, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (dead) {
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.font = '11px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(Math.ceil(u.respawnIn) + 's', u.x, u.y - 18);
+      return;
+    }
+    if (u.hp < u.maxHp) {
+      var w = 26, pct = Math.max(0, u.hp / u.maxHp);
+      ctx.fillStyle = 'rgba(0,0,0,.6)';
+      ctx.fillRect(u.x - w / 2, u.y - 24, w, 5);
+      ctx.fillStyle = pct > 0.5 ? '#46c46a' : (pct > 0.25 ? '#f5c518' : '#e5484d');
+      ctx.fillRect(u.x - w / 2, u.y - 24, w * pct, 5);
+    }
+    if (u.hasFlag) {
+      ctx.fillStyle = '#ffd60a';
+      ctx.font = 'bold 12px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚑', u.x, u.y - 28);
+    }
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, LW, LH);
+    var g = ctx.createLinearGradient(0, 0, 0, LH);
+    g.addColorStop(0, '#101623');
+    g.addColorStop(1, '#0b0f18');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, LW, LH);
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(LW / 2, 0); ctx.lineTo(LW / 2, LH); ctx.stroke();
+    ctx.beginPath(); ctx.arc(LW / 2, LH / 2, 60, 0, Math.PI * 2); ctx.stroke();
+    if (!match) return;
+    var game = match.game;
+    ['A', 'B'].forEach(function (t) {
+      var h = E.HOME[t];
+      ctx.save();
+      ctx.strokeStyle = TEAM[t];
+      ctx.globalAlpha = 0.55;
+      ctx.setLineDash([8, 6]);
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(h.x, h.y, 40, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = TEAM[t];
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(h.x - 5, h.y - 5, 10, 10);
+      ctx.globalAlpha = 1;
+    });
+    game.obstacles.forEach(function (o) {
+      ctx.fillStyle = '#2a3346';
+      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#3d4a63';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+    drawFlag(game.flags.A, TEAM.A, 'A');
+    drawFlag(game.flags.B, TEAM.B, 'B');
+    game.units.forEach(drawUnit);
+  }
+
+  function frame() {
+    try {
+      stepMatch();
+      render();
+    } catch (err) {
+      die('Match error: ' + (err && err.message ? err.message : err));
+      return; // stop the loop on unexpected failure
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- controls ----------
+  function currentSeed() {
+    var n = parseInt($('seed').textContent, 10);
+    return Number.isFinite(n) && n > 0 ? n : 1 + Math.floor(Math.random() * 99999);
+  }
+  function randomSeed() { return 1 + Math.floor(Math.random() * 99999); }
+
+  function buildControls() {
+    var sa = $('sel-a'), sb = $('sel-b');
+    ORDER.forEach(function (n) {
+      var o1 = document.createElement('option'); o1.value = n; o1.textContent = n;
+      var o2 = document.createElement('option'); o2.value = n; o2.textContent = n;
+      sa.appendChild(o1); sb.appendChild(o2);
+    });
+    sa.value = 'red-rush';
+    sb.value = 'turtle';
+    $('run').addEventListener('click', function () {
+      newMatch(currentSeed(), sa.value, sb.value);
+    });
+    $('again').addEventListener('click', function () {
+      var s = randomSeed();
+      $('seed').textContent = String(s);
+      newMatch(s, sa.value, sb.value);
+    });
+    $('spd1').addEventListener('click', function () { setSpeed('1'); });
+    $('spd4').addEventListener('click', function () { setSpeed('4'); });
+  }
+
+  function setSpeed(k) {
+    speedKey = k;
+    $('spd1').className = k === '1' ? 'on' : '';
+    $('spd4').className = k === '4' ? 'on' : '';
+  }
+
+  // ---------- go ----------
+  buildControls();
+  setSpeed('4');
+  newMatch(randomSeed(), 'red-rush', 'turtle');
+  requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>

@@ -499,24 +499,253 @@ function hud(){
 }
 
 /* ================= VOICE ================= */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const ptt=document.getElementById('ptt');
-let rec=null, listening=false;
-if(!SR){
-  ptt.disabled=true; ptt.textContent='🎙 voice not supported — type below';
-  logEv('system','Web Speech API unavailable','use the text box','hot');
-}else{
-  rec=new SR(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
-  rec.onresult=e=>{ const t=e.results[0][0].transcript; handleCommand(t); };
-  rec.onerror=e=>{ logEv('mic','error: '+e.error,'check mic permission','hot'); stopListen(); };
-  rec.onend=()=>{ if(listening) stopListen(); };
-  const startListen=()=>{ try{rec.start();}catch(e){} listening=true; ptt.classList.add('listening'); ptt.textContent='🔴 LISTENING…'; };
-  const stopListen=()=>{ try{rec.stop();}catch(e){} listening=false; ptt.classList.remove('listening'); ptt.textContent='🎙 HOLD TO TALK'; };
-  window.stopListen=stopListen;
-  ptt.addEventListener('pointerdown',e=>{e.preventDefault();unlockAudio();startListen();});
-  ptt.addEventListener('pointerup',stopListen);
-  ptt.addEventListener('pointerleave',()=>{if(listening)stopListen();});
+/* Voice commands: Web Speech API where available (Chrome), MediaRecorder -> Cloudflare worker STT fallback elsewhere (Safari/iPad).
+   HUD: mic button shows 'listening' while recording, 'transcribing' during the POST round-trip.
+   Unmatched/failed transcription fails soft: the text box hint appears, nothing throws. */
+const STT_TRANSCRIBE_URL='https://cloudflare-stt-worker.casey-digennaro.workers.dev/transcribe';
+
+/* createVoiceCommand -- inlined from client-snippet.js (Track 2) */
+function createVoiceCommand(opts) {
+  const {
+    transcribeUrl,
+    onCommand,
+    onState = () => {},
+    preferBrowserStt = true,
+    maxClipSeconds = 6,
+    lang = 'en-US',
+  } = opts || {};
+
+  if (typeof onCommand !== 'function') {
+    throw new Error('createVoiceCommand: onCommand callback is required');
+  }
+  if (typeof transcribeUrl !== 'string' || !transcribeUrl) {
+    throw new Error('createVoiceCommand: transcribeUrl is required');
+  }
+
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+  const api = {
+    using: 'none',
+    isListening() {
+      return state === 'listening';
+    },
+    start,
+    stop,
+  };
+
+  let state = 'idle'; // idle | listening | transcribing | error
+  let recognition = null; // Web Speech path
+  let mediaRecorder = null; // Server-STT path
+  let mediaStream = null;
+  let clipTimer = null;
+  let chunks = [];
+
+  function setState(next, detail) {
+    state = next;
+    try {
+      onState(next, detail);
+    } catch (_) {
+      /* game-side handler errors must not break the mic path */
+    }
+  }
+
+  function pickPath() {
+    if (preferBrowserStt && SpeechRecognition) return 'webspeech';
+    return 'server';
+  }
+
+  function start() {
+    stop(); // reset any in-flight attempt
+    const path = pickPath();
+    api.using = path;
+    if (path === 'webspeech') startWebSpeech();
+    else startServerStt();
+  }
+
+  function stop() {
+    if (clipTimer) {
+      clearTimeout(clipTimer);
+      clipTimer = null;
+    }
+    if (recognition) {
+      try {
+        recognition.abort();
+      } catch (_) {}
+      recognition = null;
+    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      try {
+        mediaRecorder.stop();
+      } catch (_) {}
+    }
+    mediaRecorder = null;
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch (_) {}
+      });
+      mediaStream = null;
+    }
+    chunks = [];
+    if (state !== 'idle') setState('idle');
+  }
+
+  // --- Path 1: in-browser Web Speech API (Chrome/Edge) ---------------------
+  function startWebSpeech() {
+    setState('listening');
+    recognition = new SpeechRecognition();
+    recognition.lang = lang;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript || '';
+      cleanupRecognition();
+      setState('idle');
+      if (text.trim()) onCommand(text.trim());
+    };
+    recognition.onerror = (event) => {
+      cleanupRecognition();
+      setState('error', { path: 'webspeech', error: event.error });
+    };
+    recognition.onend = () => {
+      if (state === 'listening') setState('idle'); // user stopped early
+      recognition = null;
+    };
+    try {
+      recognition.start();
+    } catch (err) {
+      cleanupRecognition();
+      setState('error', { path: 'webspeech', error: String(err) });
+    }
+  }
+
+  function cleanupRecognition() {
+    if (recognition) {
+      try {
+        recognition.abort();
+      } catch (_) {}
+      recognition = null;
+    }
+  }
+
+  // --- Path 2: MediaRecorder -> Worker batch STT (iPad Safari, Firefox) ----
+  async function startServerStt() {
+    setState('listening');
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      setState('error', { path: 'server', error: 'mic-denied: ' + String(err) });
+      return;
+    }
+
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : undefined; // fall back to the browser default (Safari: mp4/aac)
+    try {
+      mediaRecorder = mime
+        ? new MediaRecorder(mediaStream, { mimeType: mime })
+        : new MediaRecorder(mediaStream);
+    } catch (err) {
+      stop();
+      setState('error', { path: 'server', error: 'recorder: ' + String(err) });
+      return;
+    }
+
+    chunks = [];
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+    mediaRecorder.onstop = onClipComplete;
+    mediaRecorder.start(250); // timeslice so data flows even if stop races
+
+    // Auto-stop the clip: one utterance, batch upload, done.
+    clipTimer = setTimeout(() => {
+      clipTimer = null;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }, maxClipSeconds * 1000);
+  }
+
+  async function onClipComplete() {
+    if (clipTimer) {
+      clearTimeout(clipTimer);
+      clipTimer = null;
+    }
+    const blob = new Blob(chunks, {
+      type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm',
+    });
+    chunks = [];
+    // release the mic right away; the upload is fire-and-forget batch
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch (_) {}
+      });
+      mediaStream = null;
+    }
+    mediaRecorder = null;
+
+    if (!blob.size) {
+      setState('idle');
+      return;
+    }
+    setState('transcribing'); // <- game shows "transcribing…" on the radio dial
+
+    try {
+      const resp = await fetch(transcribeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': blob.type },
+        body: blob,
+      });
+      if (!resp.ok) {
+        throw new Error('HTTP ' + resp.status);
+      }
+      const data = await resp.json();
+      setState('idle');
+      // filler:true means Whisper hallucinated on near-silence — ignore it.
+      if (data && data.text && data.text.trim() && !data.filler) {
+        onCommand(data.text.trim());
+      }
+    } catch (err) {
+      setState('error', { path: 'server', error: 'transcribe: ' + String(err) });
+    }
+  }
+
+  return api;
 }
+
+/* ---- HUD + wiring for this game ---- */
+const ptt=document.getElementById('ptt');
+let voiceHintTimer=null;
+function setPttVoice(s,detail){
+  clearTimeout(voiceHintTimer);
+  try{
+    if(s==='listening'){ ptt.classList.add('listening'); ptt.textContent='🎙 listening'; }
+    else if(s==='transcribing'){ ptt.classList.add('listening'); ptt.textContent='📻 transcribing'; }
+    else if(s==='error'){ ptt.classList.remove('listening'); ptt.textContent='🎙 voice unavailable — type below';
+      voiceHintTimer=setTimeout(()=>{ ptt.textContent='🎙 HOLD TO TALK'; },3000); }
+    else { ptt.classList.remove('listening'); ptt.textContent='🎙 HOLD TO TALK'; }
+  }catch(e){/* HUD must never break voice */}
+}
+const voice=createVoiceCommand({
+  transcribeUrl:STT_TRANSCRIBE_URL,
+  onCommand:function(text){ try{ handleCommand(text); }catch(e){/* unmatched commands fail soft */} },
+  onState:function(s,detail){
+    setPttVoice(s,detail);
+    if(s==='error'){ try{ logEv('mic','voice error: '+((detail&&detail.error)||'mic unavailable'),'type the command in the text box instead','hot'); }catch(e){} }
+  },
+  preferBrowserStt:true,
+  maxClipSeconds:6,
+});
+window.stopListen=function(){ voice.stop(); };
+ptt.addEventListener('pointerdown',function(e){ e.preventDefault(); unlockAudio(); voice.start(); });
+ptt.addEventListener('pointerup',function(){ voice.stop(); });
+ptt.addEventListener('pointerleave',function(){ if(voice.isListening()) voice.stop(); });
 document.getElementById('typed').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.value.trim()){ unlockAudio(); handleCommand(e.target.value.trim()); e.target.value=''; }
 });

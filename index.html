@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voice Games — the talk-to-play prototypes</title>
+<style>
+  :root {
+    --bg: #101318;
+    --card: #1a2027;
+    --card-edge: #2b333d;
+    --ink: #e8ecef;
+    --dim: #9aa6b2;
+    --accent: #7fd4ff;
+    --accent-soft: #1d3a4d;
+    --tap: 64px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 20px 48px; }
+  header h1 { margin: 0 0 8px; font-size: 1.9rem; letter-spacing: -0.01em; }
+  header p { margin: 0 0 32px; color: var(--dim); font-size: 1.06rem; }
+  h2 { font-size: 1.15rem; margin: 40px 0 12px; color: var(--accent); }
+  .cards { display: grid; gap: 12px; }
+  a.card {
+    display: block;
+    min-height: var(--tap);
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 14px;
+    padding: 16px 18px;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  a.card:hover, a.card:focus-visible {
+    border-color: var(--accent);
+    background: #202932;
+    outline: none;
+  }
+  a.card:active { background: var(--accent-soft); }
+  .card .name { font-weight: 700; font-size: 1.08rem; display: block; }
+  .card .name .ext { color: var(--dim); font-weight: 400; font-size: .85rem; }
+  .card .desc { color: var(--dim); font-size: .95rem; margin-top: 4px; display: block; }
+  .card .desc code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .88em; color: var(--accent);
+    background: rgba(127,212,255,.08);
+    padding: 1px 6px; border-radius: 6px;
+  }
+  ol.howto { margin: 0; padding-left: 1.4em; color: var(--ink); }
+  ol.howto li { margin: 10px 0; font-size: 1.02rem; }
+  ol.howto li::marker { color: var(--accent); font-weight: 700; }
+  .notes { margin-top: 20px; color: var(--dim); font-size: .95rem; }
+  .notes p { margin: 10px 0; }
+  footer { margin-top: 44px; color: var(--dim); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🎙️ Voice Games</h1>
+    <p>Voice-commanded game prototypes. You talk, they fly — or fight. Best played out loud, wherever you happen to be.</p>
+  </header>
+
+  <section class="cards" aria-label="Prototypes">
+    <a class="card" href="sitka-skies-hp/">
+      <span class="name">Sitka Skies <span class="ext">(HP edition)</span></span>
+      <span class="desc">Voice flight over Sitka Sound. Say <code>fly to Cape Edgecumbe</code> and off you go.</span>
+    </a>
+    <a class="card" href="sitka-skies-proart/">
+      <span class="name">Sitka Skies <span class="ext">(ProArt edition)</span></span>
+      <span class="desc">Same skies, with hooks for local GPU models on the ProArt box.</span>
+    </a>
+    <a class="card" href="color-squad/">
+      <span class="name">COLOR SQUAD</span>
+      <span class="desc">4-unit voice RTS, capture the flag. Try <code>red squad move north</code>.</span>
+    </a>
+    <a class="card" href="tournament-demo.html">
+      <span class="name">Tournament</span>
+      <span class="desc">Watch scripted strategies fight each other on a call budget — no voice needed, just sit back.</span>
+    </a>
+    <a class="card" href="https://superinstance.github.io/sunset-quilt-page/minimax.html">
+      <span class="name">Sunset Quilt <span class="ext">(MiniMax lane)</span></span>
+      <span class="desc">The quilt prototype, MiniMax edition.</span>
+    </a>
+    <a class="card" href="https://superinstance.github.io/sunset-quilt-page/claude.html">
+      <span class="name">Sunset Quilt <span class="ext">(second lane)</span></span>
+      <span class="desc">The quilt prototype, second edition — compare the two side by side.</span>
+    </a>
+  </section>
+
+  <section>
+    <h2>How to try it</h2>
+    <ol class="howto">
+      <li>Open this page on your phone.</li>
+      <li>Tap the 🎙 and allow the microphone.</li>
+      <li>Say a command.</li>
+    </ol>
+    <div class="notes">
+      <p><strong>On iPad / Safari:</strong> transcription falls back to a Cloudflare worker, so voice still works where the browser has no speech recognition.</p>
+      <p>The 📻 button mutes the radio banter. And if the mic misbehaves, there's a text box — type the command instead.</p>
+    </div>
+  </section>
+
+  <footer>
+    Prototypes evolve fast; this page just points at them. If something looks stale, it probably is — tell Casey.
+  </footer>
+</main>
+</body>
+</html>

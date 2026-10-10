@@ -21,7 +21,14 @@ Live on GitHub Pages: <https://superinstance.github.io/voice-games/>
 
 Each game is self-contained: `index.html` plus a `banter/` folder with the
 voice-banter audio (10 mp3s + `banter.json` manifest), all linked by relative
-paths. No build step — open any folder in Chrome (mic permission required for
-voice; a text box works as fallback).
+paths. No build step — open any folder (voice uses the Web Speech API in
+Chrome; on Safari/iPad it falls back to a Cloudflare STT worker for
+transcription; a text box always works as fallback).
 
-Demo and hub links to be added later.
+## Demo & hub
+
+- **[tournament-demo.html](tournament-demo.html)** — COLOR SQUAD *Tournament
+  Demo*: scripted strategies fight each other on a call budget. No voice
+  needed — just sit back and watch.
+- The [hub page](https://superinstance.github.io/voice-games/) links every
+  game and demo from one place.
