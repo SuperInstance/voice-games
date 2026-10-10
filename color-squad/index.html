@@ -751,8 +751,11 @@ function createVoiceCommand(opts) {
   let recognition = null; // Web Speech path
   let mediaRecorder = null; // Server-STT path
   let mediaStream = null;
-  let clipTimer = null;
+  let clipTimer = null; // server path: auto-stop the clip
   let chunks = [];
+  let abortIsOurs = false; // cancel() aborted on purpose: swallow the 'aborted' onerror
+  let stoppingGracefully = false; // release-to-transcribe in flight (Web Speech)
+  let graceTimer = null; // safety net: released but the service never answered
 
   function setState(next, detail) {
     state = next;
@@ -769,19 +772,81 @@ function createVoiceCommand(opts) {
   }
 
   function start() {
-    stop(); // reset any in-flight attempt
+    hardStop(); // reset any in-flight attempt (silent abort, no error UI)
     const path = pickPath();
     api.using = path;
     if (path === 'webspeech') startWebSpeech();
     else startServerStt();
   }
 
-  function stop() {
+  // stop()                    = normal release: RELEASE-TO-TRANSCRIBE.
+  //   Web Speech: recognition.stop() (graceful) delivers the captured speech
+  //   via onresult, then onend. Server STT: mediaRecorder.stop() finalizes the
+  //   clip and onClipComplete uploads it. Captured audio is never discarded.
+  // stop({cancel:true})     = cancel gesture (finger slid off the button):
+  //   abort everything, discard, go idle SILENTLY (no error UI).
+  function stop(opts) {
+    const cancel = !!(opts && opts.cancel);
+    if (cancel) {
+      hardStop();
+      return;
+    }
     if (clipTimer) {
       clearTimeout(clipTimer);
       clipTimer = null;
     }
     if (recognition) {
+      stoppingGracefully = true;
+      setState('transcribing'); // honest HUD: waiting on the speech service
+      try {
+        recognition.stop(); // graceful: final transcript arrives via onresult
+      } catch (_) {
+        stoppingGracefully = false;
+        cleanupRecognition();
+        setState('idle');
+        return;
+      }
+      armGraceTimer('webspeech');
+      return;
+    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      // Server path: stop() finalizes the clip; chunks are KEPT and
+      // onClipComplete transcribes them. Never discard here.
+      try {
+        mediaRecorder.stop();
+      } catch (_) {}
+      armGraceTimer('server');
+      return;
+    }
+    hardStop();
+  }
+
+  function armGraceTimer(path) {
+    // Safety net: if a graceful release yields no result and no end within
+    // ~2.5s, clean up and report "released early". This is the ONLY place
+    // that string can come from: truly nothing was captured.
+    if (graceTimer) clearTimeout(graceTimer);
+    graceTimer = setTimeout(() => {
+      graceTimer = null;
+      stoppingGracefully = false;
+      hardStop();
+      setState('error', { path, error: 'released-empty' });
+    }, 2500);
+  }
+
+  function hardStop() {
+    // Full abort + cleanup. Silent: no error UI; the caller owns the state.
+    if (graceTimer) {
+      clearTimeout(graceTimer);
+      graceTimer = null;
+    }
+    stoppingGracefully = false;
+    if (clipTimer) {
+      clearTimeout(clipTimer);
+      clipTimer = null;
+    }
+    if (recognition) {
+      abortIsOurs = true; // the coming onerror('aborted') is ours: swallow it
       try {
         recognition.abort();
       } catch (_) {}
@@ -789,7 +854,7 @@ function createVoiceCommand(opts) {
     }
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       try {
-        mediaRecorder.stop();
+        mediaRecorder.stop(); // onstop fires async; chunks are empty -> no-op
       } catch (_) {}
     }
     mediaRecorder = null;
@@ -815,16 +880,46 @@ function createVoiceCommand(opts) {
 
     recognition.onresult = (event) => {
       const text = event.results[0][0].transcript || '';
+      stoppingGracefully = false;
+      if (graceTimer) {
+        clearTimeout(graceTimer);
+        graceTimer = null;
+      }
       cleanupRecognition();
       setState('idle');
       if (text.trim()) onCommand(text.trim());
     };
     recognition.onerror = (event) => {
+      const code = event.error;
+      stoppingGracefully = false;
+      if (graceTimer) {
+        clearTimeout(graceTimer);
+        graceTimer = null;
+      }
+      if (code === 'aborted' && abortIsOurs) {
+        abortIsOurs = false;
+        cleanupRecognition();
+        if (state !== 'idle') setState('idle'); // our own cancel: go quiet
+        return;
+      }
+      abortIsOurs = false;
       cleanupRecognition();
-      setState('error', { path: 'webspeech', error: event.error });
+      // 'no-speech' stays a gentle hint (see micErrInfo), never an alarm.
+      setState('error', { path: 'webspeech', error: code });
     };
     recognition.onend = () => {
-      if (state === 'listening') setState('idle'); // user stopped early
+      if (stoppingGracefully) {
+        // Released, but the service ended with no transcript: nothing captured.
+        stoppingGracefully = false;
+        if (graceTimer) {
+          clearTimeout(graceTimer);
+          graceTimer = null;
+        }
+        cleanupRecognition();
+        setState('error', { path: 'webspeech', error: 'released-empty' });
+        return;
+      }
+      if (state === 'listening') setState('idle'); // service ended the turn
       recognition = null;
     };
     try {
@@ -862,7 +957,7 @@ function createVoiceCommand(opts) {
         ? new MediaRecorder(mediaStream, { mimeType: mime })
         : new MediaRecorder(mediaStream);
     } catch (err) {
-      stop();
+      hardStop();
       setState('error', { path: 'server', error: 'recorder: ' + String(err) });
       return;
     }
@@ -887,6 +982,10 @@ function createVoiceCommand(opts) {
     if (clipTimer) {
       clearTimeout(clipTimer);
       clipTimer = null;
+    }
+    if (graceTimer) {
+      clearTimeout(graceTimer);
+      graceTimer = null;
     }
     const blob = new Blob(chunks, {
       type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm',
@@ -933,6 +1032,15 @@ function createVoiceCommand(opts) {
 }
 
 /* ---- HUD + wiring for this game ---- */
+/* === RELEASE-TO-TRANSCRIBE (2026-10-10) ===
+   Root cause of "press -> listening -> release -> 'released early' / 'voice error: aborted'":
+   stop() unconditionally called recognition.abort(), so every normal release discarded the
+   captured speech AND fired onerror('aborted'). Now:
+   - pointerup (normal release) -> stop() = graceful: recognition.stop() (Web Speech)
+     or mediaRecorder.stop() (server STT); the captured audio is transcribed, never discarded.
+   - pointerleave while listening (slid off) -> stop({cancel:true}) = abort, silent, no UI.
+   - onerror('aborted') from our own cancel is swallowed; 'no-speech' is a gentle hint.
+   - 2.5s safety net: graceful release with no result/end -> "released early", and ONLY then. */
 /* === MIC-STATUS v1 (2026-10-10): loud, persistent mic-denial UX ===
    Root cause of "press does nothing": on the reporter's devices the mic
    permission was DENIED for the site, so recognition failed instantly with
@@ -1010,7 +1118,8 @@ function micErrInfo(detail){
   if(low.indexOf('not-allowed')>=0||low.indexOf('mic-denied')===0||
      /notallowed|permission denied|permissiondenied/.test(low))
     return {blocked:true, msg:'\uD83C\uDF99 mic blocked \u2014 see red banner above'};
-  if(low.indexOf('no-speech')>=0) return {msg:'\uD83C\uDF99 didn\u2019t hear anything \u2014 speak up'};
+  if(low.indexOf('no-speech')>=0) return {msg:'\uD83C\uDF99 didn\u2019t catch that \u2014 try again'};
+  if(low.indexOf('released-empty')>=0) return {msg:'\uD83C\uDF99 released early'};
   if(low.indexOf('aborted')>=0) return {msg:'\uD83C\uDF99 released early'};
   if(low.indexOf('network')>=0) return {msg:'\uD83C\uDF99 speech service unreachable'};
   if(low.indexOf('transcribe')===0) return {msg:'\uD83C\uDF99 transcription failed \u2014 retry'};
@@ -1038,15 +1147,19 @@ const voice=createVoiceCommand({
   onState:function(s,detail){
     setPttVoice(s,detail);
     // mic-denied errors are already logged loudly by showMicBanner(); don't double-log.
-    if(s==='error'&&!micDenied){ try{ logEv('mic','voice error: '+((detail&&detail.error)||'mic unavailable'),'type the command in the text box instead','hot'); }catch(e){} }
+    // no-speech is a soft miss, not an alarm: the button hint says it all.
+    if(s==='error'&&!micDenied){
+      var err=String((detail&&detail.error)||'').toLowerCase();
+      if(err.indexOf('no-speech')<0){ try{ logEv('mic','voice error: '+((detail&&detail.error)||'mic unavailable'),'type the command in the text box instead','hot'); }catch(e){} }
+    }
   },
   preferBrowserStt:true,
   maxClipSeconds:6,
 });
 window.stopListen=function(){ voice.stop(); };
 ptt.addEventListener('pointerdown',function(e){ e.preventDefault(); unlockAudio(); voice.start(); });
-ptt.addEventListener('pointerup',function(){ voice.stop(); });
-ptt.addEventListener('pointerleave',function(){ if(voice.isListening()) voice.stop(); });
+ptt.addEventListener('pointerup',function(){ voice.stop(); }); // release = transcribe
+ptt.addEventListener('pointerleave',function(){ if(voice.isListening()) voice.stop({cancel:true}); }); // slid off = cancel
 probeMicPermission(); // boot-time mic permission status in the HUD
 document.getElementById('typed').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.value.trim()){ unlockAudio(); handleCommand(e.target.value.trim()); e.target.value=''; }
