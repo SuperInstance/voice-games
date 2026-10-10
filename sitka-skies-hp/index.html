@@ -174,7 +174,7 @@ const ISLANDS = [
   // small rocks
   [[700,180],[720,185],[715,205],[695,200]],
 ];
-const plane = {x:560, y:300, hdg:270, spd:0, maxSpd:3.2, airborne:false, dest:null};
+const plane = {x:560, y:300, hdg:0, spd:0, maxSpd:3.2, airborne:false, dest:null};
 
 /* ================= LEARNING (the visible part) ================= */
 let apiCalls = 0, localCalls = 0;
@@ -451,15 +451,15 @@ function frame(){
     const dx=P.dest.x-P.x, dy=P.dest.y-P.y, d=Math.hypot(dx,dy);
     if(d<8){ P.dest=null; logEv('Navigate',`arrived — ${nearestPlace().p.name}`,'destination reached','local'); }
     else{
-      const want=Math.atan2(dy,dx)*180/Math.PI;
+      const want=(Math.atan2(dy,dx)*180/Math.PI+90+360)%360; // → aviation: 0=N, 90=E
       let diff=((want-P.hdg+540)%360)-180;
       P.hdg=(P.hdg+Math.max(-2.5,Math.min(2.5,diff))+360)%360;
       P.spd=Math.min(P.maxSpd, P.spd+0.02);
     }
   }
   if(P.airborne||P.spd>0){
-    P.x+=Math.cos(P.hdg*Math.PI/180)*P.spd;
-    P.y+=Math.sin(P.hdg*Math.PI/180)*P.spd;
+    P.x+=Math.sin(P.hdg*Math.PI/180)*P.spd;   // aviation: 0=N, 90=E
+    P.y+=-Math.cos(P.hdg*Math.PI/180)*P.spd;
     P.x=Math.max(10,Math.min(890,P.x)); P.y=Math.max(10,Math.min(640,P.y));
     trail.push({x:P.x,y:P.y}); if(trail.length>120)trail.shift();
   }
@@ -499,7 +499,7 @@ function draw(){
     ctx.stroke();
   }
   // plane
-  const px=sx(plane.x), py=sy(plane.y), a=plane.hdg*Math.PI/180, s=ss(14);
+  const px=sx(plane.x), py=sy(plane.y), a=(plane.hdg-90)*Math.PI/180, s=ss(14); // nose matches aviation hdg
   ctx.save(); ctx.translate(px,py); ctx.rotate(a);
   ctx.fillStyle=plane.airborne?'#5df08a':'#7d93a8';
   ctx.beginPath(); ctx.moveTo(s,0); ctx.lineTo(-s*0.7,s*0.6); ctx.lineTo(-s*0.35,0); ctx.lineTo(-s*0.7,-s*0.6);
