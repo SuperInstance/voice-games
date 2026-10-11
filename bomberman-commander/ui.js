@@ -5,6 +5,10 @@
   const canvas = $('game');
   const game = new Game(canvas);
 
+  /* queued order: a tile tapped during the commitment lock fires the moment
+     the lock clears. Latest tap wins; belay / new round / death clears it. */
+  let queuedTile = null;
+
   /* ---------- banner ---------- */
   function showBanner(title, text, buttons) {
     $('banner-title').textContent = title;
@@ -23,6 +27,7 @@
 
   /* ---------- round lifecycle ---------- */
   function startTheater(seed) {
+    queuedTile = null;
     game.speed = currentSpeed();
     game.newRound(seed == null ? (Math.random() * 1e9) | 0 : seed, 'theater');
     $('theater').hidden = false;
@@ -31,6 +36,7 @@
     refreshSeedline();
   }
   function startCommander() {
+    queuedTile = null;
     game.speed = 1;
     syncSpeedButtons();
     game.newRound((Math.random() * 1e9) | 0, 'commander');
@@ -100,6 +106,17 @@
     const dt = Math.min(0.05, (ts - last) / 1000 || 0.016);
     last = ts;
     game.update(dt);
+    // drain a queued order the moment the commitment lock clears
+    if (queuedTile && game.mode === 'commander') {
+      const me = game.bots[0];
+      if (!me || !me.alive) { queuedTile = null; }
+      else if (game.time >= me.lockUntil) {
+        const q = queuedTile; queuedTile = null; // clear first: no re-queue loops
+        const r = game.orderTile(me, q, 'queue');
+        if (r.ok) refreshTilebar(); // commit bark arrives via onEvent
+        else order('⚠️ Queued order dropped — say or tap it again.');
+      }
+    }
     game.render();
     sheetTick++;
     if (sheetTick % 15 === 0) { computeAir(); renderStrip(); }
@@ -121,17 +138,26 @@
                     '<small>' + t.desc + '</small>';
       b.title = t.desc + ' — say "' + t.phrases[0] + '"';
       if (locked && t.id !== active && t.id !== 'bolt') b.style.opacity = '0.45';
+      if (t.id === queuedTile) b.classList.add('queued');
       b.onclick = () => setPlayerTile(t.id, 'tap');
       bar.appendChild(b);
     });
   }
   function setPlayerTile(id, via) {
     if (game.mode !== 'commander' || !game.bots[0] || !game.bots[0].alive) return;
-    const r = game.orderTile(game.bots[0], id, via || 'tap');
+    const me = game.bots[0];
+    if (id === me.tileId) { // re-tapping the live tile cancels any queued order
+      if (queuedTile) { queuedTile = null; refreshTilebar(); order('🎖 Staying on ' + TILE_BY_ID[id].icon + ' <b>' + TILE_BY_ID[id].name + '</b> — queued order cancelled.'); }
+      return;
+    }
+    const r = game.orderTile(me, id, via || 'tap');
     if (!r.ok && r.reason === 'locked') {
+      // queue it: fires the moment the lock clears (latest tap wins)
+      queuedTile = id;
       const t = TILE_BY_ID[id];
-      order('🔒 <b>Locked</b> — ' + t.icon + ' ' + t.name + ' waits ' +
-            r.remaining.toFixed(1) + 's. <span style="color:var(--dim)">Say <b>belay</b> to cancel the last order, <b>now</b> to override, <b>bolt</b> to panic.</span>');
+      order('🔒 <b>Locked</b> — ' + t.icon + ' <b>' + t.name + '</b> queued, fires in ' +
+            r.remaining.toFixed(1) + 's. <span style="color:var(--dim)">Tap again to change the queue · <b>belay</b> cancels · <b>now</b> fires immediately · <b>bolt</b> panics.</span>');
+      refreshTilebar();
       return;
     }
     if (r.ok && !r.noop) {
@@ -143,9 +169,11 @@
   }
   function doBelay() {
     if (game.mode !== 'commander' || !game.bots[0] || !game.bots[0].alive) return;
+    queuedTile = null; // belay cancels everything pending
     if (!game.belay(game.bots[0])) {
       order('⏪ Nothing to belay — no order inside the 1.5s window.');
     }
+    refreshTilebar();
   }
   function doNow() {
     if (game.mode !== 'commander' || !game.bots[0] || !game.bots[0].alive) return;

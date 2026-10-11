@@ -50,6 +50,8 @@
         font-size:12px;color:var(--txt);cursor:pointer;text-align:center;line-height:1.25}
   .tile .ic{font-size:19px;display:block}
   .tile.active{border-color:var(--accent);background:#2b2413;box-shadow:0 0 10px rgba(255,209,102,.25)}
+  .tile.queued{border-style:dashed;border-color:#7fd4ff;animation:qpulse 0.8s ease-in-out infinite}
+  @keyframes qpulse{50%{box-shadow:0 0 12px rgba(127,212,255,.5)}}
   .tile small{display:block;color:var(--dim);font-size:10px;margin-top:2px}
   /* spreadsheet strip — pinned to the board edge, always visible */
   #strip{display:grid;gap:8px;margin-top:10px}
