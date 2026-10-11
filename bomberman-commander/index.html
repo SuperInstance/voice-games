@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Bomberman Commander — voice-games</title>
+<style>
+  :root{--bg:#101018;--panel:#181822;--line:#2a2a3a;--txt:#e8e8f0;--dim:#9a9ab0;
+       --accent:#ffd166;--blue:#4cc9f0;--red:#ef476f;--green:#80ed99;--purple:#b388ff;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       -webkit-tap-highlight-color:transparent}
+  .wrap{max-width:640px;margin:0 auto;padding:12px}
+  header{display:flex;align-items:baseline;gap:10px;padding:6px 2px}
+  header h1{font-size:20px;margin:0;letter-spacing:1px}
+  header h1 .cmd{color:var(--accent)}
+  header .seed{font-size:12px;color:var(--dim);margin-left:auto}
+  #stage{position:relative;background:#0a0a10;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  canvas{display:block;width:100%;height:auto;touch-action:none}
+  #banner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+          background:rgba(8,8,14,.78);text-align:center;padding:20px;gap:10px}
+  #banner[hidden]{display:none}
+  #banner h2{margin:0;font-size:22px}
+  #banner p{margin:0;color:var(--dim);font-size:14px;max-width:420px;line-height:1.5}
+  .btn{background:#26263a;color:var(--txt);border:1px solid var(--line);border-radius:10px;
+       padding:12px 16px;font-size:15px;cursor:pointer}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--accent);color:#201500;border:none;font-weight:700;font-size:17px;padding:14px 26px}
+  .btn.small{padding:8px 12px;font-size:13px}
+  .btn.on{background:#3a2c10;border-color:var(--accent);color:var(--accent)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px}
+  .panel h3{margin:0 0 8px;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+  /* theater controls */
+  #theater p.expl{font-size:14px;color:var(--dim);line-height:1.55;margin:0 0 10px}
+  #theater p.expl b{color:var(--txt)}
+  /* commander controls */
+  #ptt{flex:1 1 auto;padding:14px 10px;font-size:16px;font-weight:700;border-radius:12px;
+       border:2px solid var(--accent);background:#1d1a10;color:var(--accent);cursor:pointer;user-select:none}
+  #ptt.listening{background:#3a1c1c;border-color:var(--red);color:#ffb3c1;box-shadow:0 0 18px rgba(239,71,111,.45)}
+  #ptt.transcribing{opacity:.7}
+  #cmdtext{flex:2 1 140px;padding:13px 10px;font-size:15px;border-radius:12px;border:1px solid var(--line);
+           background:#0e0e16;color:var(--txt)}
+  #orderline{font-size:13px;color:var(--dim);min-height:20px;margin-top:8px}
+  #orderline b{color:var(--accent)}
+  /* tile bar */
+  #tilebar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .tile{border:1px solid var(--line);background:#1e1e2e;border-radius:10px;padding:9px 4px;
+        font-size:12px;color:var(--txt);cursor:pointer;text-align:center;line-height:1.25}
+  .tile .ic{font-size:19px;display:block}
+  .tile.active{border-color:var(--accent);background:#2b2413;box-shadow:0 0 10px rgba(255,209,102,.25)}
+  .tile small{display:block;color:var(--dim);font-size:10px;margin-top:2px}
+  /* spreadsheet strip — pinned to the board edge, always visible */
+  #strip{display:grid;gap:8px;margin-top:10px}
+  .striprow{display:grid;grid-template-columns:1.2fr 1fr 1.2fr 1fr;background:var(--panel);
+            border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .cell{padding:8px 10px;border-right:1px solid var(--line);min-width:0}
+  .cell:last-child{border-right:none}
+  .cell .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+  .cell .v{font-size:14px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cell .v b{color:var(--accent)}
+  /* spreadsheet */
+  #sheet{width:100%;border-collapse:collapse;font-size:12px}
+  #sheet th,#sheet td{padding:6px 6px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  #sheet th{color:var(--dim);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+  .dead{color:var(--dim);text-decoration:line-through}
+  footer{margin:18px 0 30px;color:var(--dim);font-size:12px;text-align:center;line-height:1.6}
+  footer a{color:var(--blue)}
+  @media(min-width:700px){
+    .wrap{max-width:960px}
+    #tilebar{grid-template-columns:repeat(6,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💣 BOMBERMAN <span class="cmd">COMMANDER</span></h1>
+    <span class="seed" id="seedline">seed —</span>
+  </header>
+
+  <!-- map first -->
+  <div id="stage">
+    <canvas id="game" width="450" height="390"></canvas>
+    <div id="banner" hidden>
+      <h2 id="banner-title"></h2>
+      <p id="banner-text"></p>
+      <div class="row" id="banner-btns" style="justify-content:center"></div>
+    </div>
+  </div>
+
+  <!-- spreadsheet strip: pinned to the board edge, always visible -->
+  <div id="strip" aria-live="off"></div>
+
+  <!-- theater (attractor) controls -->
+  <div class="panel" id="theater">
+    <h3>📺 Replay theater — live bots, no commander</h3>
+    <p class="expl">This isn't a video. Two scripted bombers are dueling in the
+    engine right now, on a fresh random map every round — 1v1, mirror spawns.
+    <b>Take command</b> whenever you want: you'll take the blue bomber and call
+    strategy tiles by voice or tap. Orders lock for 3s once they land.</p>
+    <div class="row">
+      <span style="font-size:13px;color:var(--dim)">speed</span>
+      <button class="btn small spd on" data-spd="1">1×</button>
+      <button class="btn small spd" data-spd="2">2×</button>
+      <button class="btn small spd" data-spd="4">4×</button>
+      <button class="btn small" id="newgame">🎲 new random game</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="takecommand" style="width:100%">🎖 TAKE COMMAND</button>
+    </div>
+  </div>
+
+  <!-- commander controls -->
+  <div class="panel" id="commander" hidden>
+    <h3>🎖 Commander — your bomber is <span style="color:var(--blue)">blue</span></h3>
+    <div class="row">
+      <button id="ptt">🎙 HOLD TO TALK</button>
+      <input id="cmdtext" type="text" placeholder='type an order — "hunt", "dig", "bolt", "belay", "now"…' autocomplete="off">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn small" id="belaybtn" title="Cancel a misheard order (1.5s window)">⏪ Belay</button>
+      <button class="btn small" id="nowbtn" title="Trigger NOW — always works, even locked">⚡ NOW</button>
+      <span style="font-size:12px;color:var(--dim)">orders lock 3s · belay 1.5s · bolt 5s</span>
+    </div>
+    <div id="orderline">Say or tap a strategy tile. Your bomber obeys.</div>
+    <div id="tilebar"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn small" id="newgame2">🎲 new round</button>
+      <button class="btn small" id="watch">📺 back to theater</button>
+    </div>
+  </div>
+
+  <!-- spreadsheet view -->
+  <div class="panel">
+    <h3>📊 Spreadsheet — live bot internals</h3>
+    <div style="overflow-x:auto">
+    <table id="sheet">
+      <thead><tr><th>bot</th><th>tile</th><th>pos</th><th>blast</th><th>bombs</th><th>speed</th><th>loot</th><th>last order</th><th>state</th></tr></thead>
+      <tbody id="sheetbody"></tbody>
+    </table>
+    </div>
+  </div>
+
+  <footer>
+    Bomberman Commander v1 prototype · <a href="https://github.com/SuperInstance/voice-games">SuperInstance/voice-games</a><br>
+    You're the commander, not the player. Tiles are strategy, voice is orders.
+    <span id="vstat"></span>
+  </footer>
+</div>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
