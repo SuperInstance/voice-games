@@ -2646,3 +2646,11 @@
 {"ts":"2026-10-12T15:05:32.462Z","a":"aggressive","b":"defensive","seed":30412,"winner":"A","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-05-30-719Z.json"}
 {"ts":"2026-10-12T15:06:19.750Z","a":"aggressive","b":"counterpuncher","seed":77698,"winner":"A","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-06-18-085Z.json"}
 {"ts":"2026-10-12T15:07:07.104Z","a":"defensive","b":"counterpuncher","seed":24991,"winner":"B","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-07-05-358Z.json"}
+{"ts":"2026-10-12T15:07:54.455Z","a":"aggressive","b":"defensive","seed":72385,"winner":"A","scoreA":2,"scoreB":1,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-07-52-632Z.json"}
+{"ts":"2026-10-12T15:08:41.926Z","a":"aggressive","b":"counterpuncher","seed":19745,"winner":"A","scoreA":3,"scoreB":1,"ticks":13232,"gameSecs":220.5,"replay":"2026-10-12T15-08-40-174Z.json"}
+{"ts":"2026-10-12T15:09:29.214Z","a":"defensive","b":"counterpuncher","seed":67178,"winner":"B","scoreA":1,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-09-27-444Z.json"}
+{"ts":"2026-10-12T15:10:16.501Z","a":"aggressive","b":"defensive","seed":14501,"winner":"A","scoreA":3,"scoreB":1,"ticks":15362,"gameSecs":256,"replay":"2026-10-12T15-10-14-657Z.json"}
+{"ts":"2026-10-12T15:11:03.635Z","a":"aggressive","b":"counterpuncher","seed":61742,"winner":"A","scoreA":3,"scoreB":2,"ticks":19131,"gameSecs":318.9,"replay":"2026-10-12T15-11-01-876Z.json"}
+{"ts":"2026-10-12T15:11:50.925Z","a":"defensive","b":"counterpuncher","seed":8892,"winner":"B","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-11-49-171Z.json"}
+{"ts":"2026-10-12T15:12:38.174Z","a":"aggressive","b":"defensive","seed":56180,"winner":"B","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-12T15-12-36-429Z.json"}
+{"ts":"2026-10-12T15:13:25.326Z","a":"aggressive","b":"counterpuncher","seed":3429,"winner":"A","scoreA":3,"scoreB":1,"ticks":15278,"gameSecs":254.6,"replay":"2026-10-12T15-13-23-458Z.json"}
