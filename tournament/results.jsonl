@@ -6442,3 +6442,10 @@
 {"ts":"2026-10-14T23:05:40.132Z","a":"aggressive","b":"counterpuncher","seed":38127,"winner":"B","scoreA":1,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-14T23-05-38-463Z.json"}
 {"ts":"2026-10-14T23:06:27.264Z","a":"defensive","b":"counterpuncher","seed":85284,"winner":"B","scoreA":1,"scoreB":3,"ticks":23562,"gameSecs":392.7,"replay":"2026-10-14T23-06-25-493Z.json"}
 {"ts":"2026-10-14T23:07:14.413Z","a":"aggressive","b":"defensive","seed":32411,"winner":"A","scoreA":3,"scoreB":1,"ticks":19540,"gameSecs":325.7,"replay":"2026-10-14T23-07-12-640Z.json"}
+{"ts":"2026-10-14T23:08:01.705Z","a":"aggressive","b":"counterpuncher","seed":79572,"winner":"B","scoreA":2,"scoreB":3,"ticks":15697,"gameSecs":261.6,"replay":"2026-10-14T23-07-59-903Z.json"}
+{"ts":"2026-10-14T23:08:49.379Z","a":"defensive","b":"counterpuncher","seed":27046,"winner":"A","scoreA":3,"scoreB":1,"ticks":19666,"gameSecs":327.8,"replay":"2026-10-14T23-08-47-867Z.json"}
+{"ts":"2026-10-14T23:09:36.728Z","a":"aggressive","b":"defensive","seed":74684,"winner":"A","scoreA":3,"scoreB":1,"ticks":18280,"gameSecs":304.7,"replay":"2026-10-14T23-09-35-133Z.json"}
+{"ts":"2026-10-14T23:10:23.920Z","a":"aggressive","b":"counterpuncher","seed":21896,"winner":"A","scoreA":3,"scoreB":1,"ticks":11026,"gameSecs":183.8,"replay":"2026-10-14T23-10-22-008Z.json"}
+{"ts":"2026-10-14T23:11:11.201Z","a":"defensive","b":"counterpuncher","seed":69086,"winner":"B","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-14T23-11-09-631Z.json"}
+{"ts":"2026-10-14T23:11:58.638Z","a":"aggressive","b":"defensive","seed":16486,"winner":"A","scoreA":3,"scoreB":1,"ticks":13070,"gameSecs":217.8,"replay":"2026-10-14T23-11-56-797Z.json"}
+{"ts":"2026-10-14T23:12:45.930Z","a":"aggressive","b":"counterpuncher","seed":63946,"winner":"A","scoreA":3,"scoreB":2,"ticks":16332,"gameSecs":272.2,"replay":"2026-10-14T23-12-44-117Z.json"}
