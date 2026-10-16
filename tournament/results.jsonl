@@ -9135,3 +9135,4 @@
 {"ts":"2026-10-16T13:32:49.628Z","a":"defensive","b":"counterpuncher","seed":67534,"winner":"B","scoreA":2,"scoreB":2,"ticks":24000,"gameSecs":400,"replay":"2026-10-16T13-32-47-875Z.json"}
 {"ts":"2026-10-16T13:33:36.746Z","a":"aggressive","b":"defensive","seed":14747,"winner":"B","scoreA":2,"scoreB":3,"ticks":16493,"gameSecs":274.9,"replay":"2026-10-16T13-33-34-922Z.json"}
 {"ts":"2026-10-16T13:34:23.996Z","a":"aggressive","b":"counterpuncher","seed":61855,"winner":"A","scoreA":2,"scoreB":1,"ticks":24000,"gameSecs":400,"replay":"2026-10-16T13-34-22-428Z.json"}
+{"ts":"2026-10-16T13:38:36.464Z","a":"aggressive","b":"defensive","seed":14319,"winner":"A","scoreA":3,"scoreB":2,"ticks":17724,"gameSecs":295.4,"replay":"2026-10-16T13-38-34-848Z.json"}
