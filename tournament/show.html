@@ -94,11 +94,11 @@
   </header>
 
   <section id="nowPlaying">
-    <h2><span class="kicker">Now playing</span>The latest bout, on loop</h2>
+    <h2><span class="kicker">Now playing</span>From the pit, on loop</h2>
     <div class="boutbar">
       <span class="what" id="boutWhat">loading the latest bout&hellip;</span>
       <span class="when" id="boutWhen"></span>
-      <button id="btnNewest" type="button">&#8635; jump to the newest bout</button>
+      <button id="btnNewest" type="button">&#8635; fresher bout, please</button>
       <a class="rlink" id="fullReplay" href="#" hidden>open in the replay viewer &rarr;</a>
     </div>
     <canvas id="cv"></canvas>
@@ -434,8 +434,8 @@ function loop(ts) {
 }
 requestAnimationFrame(loop);
 
-function loadBout(file, whenText) {
-  if (!file) return;
+function loadBout(file, whenText, onFail) {
+  if (!file) { if (onFail) onFail(); return; }
   fetch('replays/' + file).then(function (r) {
     if (!r.ok) throw new Error('replay HTTP ' + r.status);
     return r.json();
@@ -455,8 +455,18 @@ function loadBout(file, whenText) {
     link.hidden = false;
     paint(viewer.draw());
   }).catch(function (e) {
-    $('boutWhat').textContent = 'the latest replay is still being written — boards below are live';
+    if (onFail) onFail();
+    else $('boutWhat').textContent = 'the pit is between bouts — boards below are live';
   });
+}
+
+function tryCandidates(cands, i) {
+  if (!cands || i >= cands.length) {
+    $('boutWhat').textContent = 'the pit is between bouts — boards below are live';
+    return;
+  }
+  var c = cands[i];
+  loadBout(c.file, timeAgo(c.ts), function () { tryCandidates(cands, i + 1); });
 }
 
 function raceBar(elA, elB, capA, capB, fx, label) {
@@ -512,11 +522,9 @@ function render(d) {
         '<span class="versus">' + esc(r.a) + ' <span style="color:var(--dim)">vs</span> ' + esc(r.b) + ' &middot; ' + badge + '</span>' +
         '<span class="score">' + r.scoreA + ' – ' + r.scoreB + '</span>' + link + '</div>';
     }).join('');
-    // now playing: the newest bout's replay, if we're not already showing it
-    var latest = (ar.last8 || [])[0];
-    if (latest && latest.replay && latest.replay !== currentFile) {
-      loadBout(latest.replay, 'bout #' + ar.bouts + ' · ' + timeAgo(latest.ts));
-    }
+    // now playing: walk the candidate list (long, safely-published bouts)
+    var cands = ar.nowPlaying || [];
+    if (cands.length && cands[0].file !== currentFile) tryCandidates(cands, 0);
   }
   if (se) {
     $('seasonSpot').classList.remove('hidden');
@@ -557,8 +565,8 @@ function refresh() {
 $('btnNewest').addEventListener('click', function () {
   fetch('show-data.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
     render(d);
-    var latest = (d.arena && d.arena.last8 || [])[0];
-    if (latest && latest.replay) loadBout(latest.replay, 'bout #' + d.arena.bouts + ' · ' + timeAgo(latest.ts));
+    var cands = (d.arena && d.arena.nowPlaying) || [];
+    if (cands.length) { currentFile = null; tryCandidates(cands, 0); }
   }).catch(function () { /* the refresh loop will catch up */ });
 });
 window.addEventListener('resize', function () { viewer.resize(); paint(viewer.draw()); });
