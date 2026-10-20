@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Show — arena &amp; season, live from the pit</title>
+<style>
+  :root { --bg:#0c1016; --panel:#141a24; --line:#232c3a; --ink:#e8e4da; --dim:#9aa3b2;
+          --a:#ff5d49; --b:#35c6b8; --amber:#f2b14e; --green:#8fe388; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:960px; margin:0 auto; padding:16px; }
+  a { color:var(--amber); }
+  header h1 { margin:8px 0 2px; font-size:32px; letter-spacing:.3px; }
+  header .sub { color:var(--dim); margin:0 0 10px; font-size:14px; }
+  nav { display:flex; gap:10px; margin:0 0 18px; flex-wrap:wrap; }
+  nav a { text-decoration:none; background:var(--panel); border:1px solid var(--line);
+          border-radius:8px; padding:8px 14px; font-size:14px; }
+  nav a:hover { border-color:var(--amber); }
+  h2 { font-size:20px; margin:26px 0 4px; }
+  h2 .kicker { display:block; font-size:11.5px; letter-spacing:2.2px; color:var(--amber);
+               text-transform:uppercase; font-weight:700; margin-bottom:2px; }
+  .lede { color:var(--dim); font-size:13.5px; margin:0 0 12px; }
+  canvas { width:100%; display:block; border:1px solid var(--line); border-radius:10px; background:#0e131b; }
+  .boutbar { display:flex; gap:10px; align-items:center; margin:10px 0 12px; flex-wrap:wrap; }
+  .boutbar .what { font-weight:700; font-size:16px; }
+  .boutbar .when { color:var(--dim); font-size:13px; }
+  .boutbar button { background:var(--panel); color:var(--ink); border:1px solid var(--line);
+                    border-radius:8px; padding:7px 12px; font-size:13.5px; cursor:pointer; }
+  .boutbar button:hover { border-color:var(--amber); }
+  .hud { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .card .who { font-weight:700; font-size:14px; }
+  .card .score { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .card .calls { color:var(--dim); font-size:12.5px; margin-top:4px; }
+  #cardA .who { color:var(--a); } #cardB .who { color:var(--b); }
+  #lastCall { grid-column:1 / -1; color:var(--dim); font-size:13.5px; }
+  #lastCall b { color:var(--ink); font-weight:600; }
+  .racebar { display:flex; height:34px; border-radius:9px; overflow:hidden; border:1px solid var(--line);
+             font-size:13px; font-weight:700; margin:8px 0 4px; }
+  .racebar .sideA { background:rgba(255,93,73,.75); color:#fff; display:flex; align-items:center;
+                    padding:0 12px; white-space:nowrap; overflow:hidden; }
+  .racebar .sideB { background:rgba(53,198,184,.75); color:#06231f; display:flex; align-items:center;
+                    padding:0 12px; white-space:nowrap; overflow:hidden; margin-left:auto; }
+  .racecap { display:flex; justify-content:space-between; color:var(--dim); font-size:12.5px; margin-bottom:10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+  .strat .name { font-weight:700; font-size:16px; margin-bottom:6px; }
+  .strat .wld { font-variant-numeric:tabular-nums; font-size:14px; }
+  .strat .wld .w { color:var(--green); font-weight:700; }
+  .strat .wld .l { color:var(--a); font-weight:700; }
+  .strat .wld .d { color:var(--dim); font-weight:700; }
+  .strat .bar { height:6px; background:#0a0d12; border-radius:3px; margin-top:8px; overflow:hidden; }
+  .strat .bar i { display:block; height:100%; background:var(--amber); border-radius:3px; }
+  .strat .pct { color:var(--dim); font-size:12px; margin-top:4px; }
+  .odd .value { font-size:26px; font-weight:800; color:var(--amber); font-variant-numeric:tabular-nums; }
+  .odd .label { font-weight:700; font-size:14px; margin-bottom:2px; }
+  .odd .detail { color:var(--dim); font-size:12.5px; margin-top:4px; }
+  .champ { border-color:var(--amber); }
+  .champ .crown { font-size:13px; letter-spacing:1.6px; color:var(--amber); font-weight:700; text-transform:uppercase; }
+  .champ .name { font-size:21px; font-weight:800; margin:4px 0 2px; overflow-wrap:anywhere; }
+  .champ .by { color:var(--dim); font-size:13px; }
+  .champ .desc { font-size:14px; margin-top:8px; overflow-wrap:anywhere; }
+  .champ .meta { color:var(--dim); font-size:12.5px; margin-top:8px; }
+  .hist { width:100%; border-collapse:collapse; font-size:14px; }
+  .hist td { padding:7px 8px; border-top:1px solid var(--line); vertical-align:top; }
+  .hist td.n { color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap; width:52px; }
+  .hist .cw { font-weight:700; overflow-wrap:anywhere; }
+  .hist .ro { color:var(--dim); font-size:12.5px; overflow-wrap:anywhere; }
+  .match { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+           padding:10px 14px; margin-bottom:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .match .when { color:var(--dim); font-size:12.5px; min-width:140px; }
+  .match .versus { font-weight:600; font-size:15px; flex:1 1 200px; }
+  .match .versus .winner { color:var(--green); }
+  .match .score { font-variant-numeric:tabular-nums; font-weight:700; font-size:16px; }
+  .match .rlink { font-size:13.5px; text-decoration:none; font-weight:600; }
+  .drawbadge { color:var(--dim); font-size:12px; border:1px solid var(--line); border-radius:6px; padding:2px 8px; }
+  footer { color:var(--dim); font-size:12.5px; margin:30px 0 10px; }
+  #err { color:var(--a); font-size:14px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>&#127914; The Show</h1>
+    <p class="sub">The arena and the season, live from the pit &mdash; two programmes of scripted squads, settled in public.</p>
+    <nav>
+      <a href="index.html">&#9876; the arena board</a>
+      <a href="mosaic.html">&#9638; the mosaic</a>
+      <a href="../tournament-demo.html">&#9654; watch one live</a>
+      <a href="../">&#8962; hub</a>
+    </nav>
+  </header>
+
+  <section id="nowPlaying">
+    <h2><span class="kicker">Now playing</span>The latest bout, on loop</h2>
+    <div class="boutbar">
+      <span class="what" id="boutWhat">loading the latest bout&hellip;</span>
+      <span class="when" id="boutWhen"></span>
+      <button id="btnNewest" type="button">&#8635; jump to the newest bout</button>
+      <a class="rlink" id="fullReplay" href="#" hidden>open in the replay viewer &rarr;</a>
+    </div>
+    <canvas id="cv"></canvas>
+    <div class="hud" style="margin-top:10px">
+      <div class="card" id="cardA">
+        <div class="who" id="whoA">A</div>
+        <div class="score" id="scoreA">0</div>
+        <div class="calls" id="callsA"></div>
+      </div>
+      <div class="card" id="cardB">
+        <div class="who" id="whoB">B</div>
+        <div class="score" id="scoreB">0</div>
+        <div class="calls" id="callsB"></div>
+      </div>
+      <div class="card" id="lastCall"><b>latest orders:</b> <span id="lastCallText">&mdash;</span></div>
+    </div>
+    <p class="lede" style="margin-top:10px">The squads are scripts, not joysticks &mdash; every order above was written into a strategy file before the bout began. The call budget is the leash: spend it all and the squad freezes.</p>
+  </section>
+
+  <section id="crownRace" class="hidden">
+    <h2><span class="kicker">The crown race</span>Defensive vs counterpuncher</h2>
+    <p class="lede">The fixture that never settles. All&ndash;time on top; the last 1,000 meetings underneath.</p>
+    <div class="racebar"><div class="sideA" id="raceAllA"></div><div class="sideB" id="raceAllB"></div></div>
+    <div class="racecap"><span id="raceAllCapA"></span><span id="raceAllCapB"></span></div>
+    <div class="racebar"><div class="sideA" id="raceRecA"></div><div class="sideB" id="raceRecB"></div></div>
+    <div class="racecap"><span id="raceRecCapA"></span><span id="raceRecCapB"></span></div>
+    <div class="grid" id="tallyGrid"></div>
+  </section>
+
+  <section id="oddities" class="hidden">
+    <h2><span class="kicker">The oddities shelf</span>Records &amp; curiosities</h2>
+    <div class="grid" id="oddGrid"></div>
+  </section>
+
+  <section id="seasonSpot" class="hidden">
+    <h2><span class="kicker">Colour Squad season</span>The reigning champion</h2>
+    <p class="lede" id="seasonLede"></p>
+    <div class="card champ" id="champCard"></div>
+    <h2 style="font-size:17px">Recent champions</h2>
+    <table class="hist" id="histTable"></table>
+    <div id="newestWrap"></div>
+  </section>
+
+  <section id="freshPit" class="hidden">
+    <h2><span class="kicker">Fresh from the pit</span>Latest results</h2>
+    <div id="matchList"></div>
+    <p><a href="index.html">the full board &rarr;</a></p>
+  </section>
+
+  <p id="err"></p>
+  <footer>Boards rebuilt on the Oracle every few minutes &middot; <span id="lastUpdated"></span></footer>
+</div>
+
+<script>
+/* ArenaReplay — shared canvas renderer for color-squad tournament replays.
+ *
+ * Written once, inlined into replay.html and mosaic.html at build time by
+ * build.sh, so the two pages can never drift apart. Works from the trace
+ * alone: interpolates unit positions between sparse keyframes, steps scores
+ * discretely, and ticks call-budget counters from meta.sides.*.callLog.
+ *
+ * Usage:
+ *   var v = ArenaReplay(canvas);
+ *   v.load(replayJson);            // {meta, trace}
+ *   v.setSpeed(1); v.setPlaying(true);
+ *   // per frame:
+ *   v.advance(dtMs);               // moves the clock when playing
+ *   var info = v.draw();           // renders + returns HUD info
+ */
+(function (global) {
+'use strict';
+
+var FW = 900, FH = 650;          // game field size (ticks are in this space)
+var TICKS_PER_SEC = 60;          // 24000 ticks == 400 s of game time
+var TEAM_A = '#ff5d49';          // ember red
+var TEAM_B = '#35c6b8';          // teal
+
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function lerp(a, b, f) { return a + (b - a) * f; }
+
+function ArenaReplay(canvas) {
+  var ctx = canvas.getContext('2d');
+  var replay = null, trace = [], maxTick = 0;
+  var callA = [], callB = [];
+  var nameA = 'A', nameB = 'B';
+  var budgetA = 0, smartBudgetA = 0, budgetB = 0, smartBudgetB = 0;
+  var curTick = 0, playing = false, speed = 1, loop = false;
+  var lastW = 0;
+
+  function fit() {
+    var w = canvas.clientWidth || 640;
+    if (Math.abs(w - lastW) < 1 && canvas.width > 0) return;
+    lastW = w;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(w * dpr));
+    canvas.height = Math.max(1, Math.round(w * FH / FW * dpr));
+  }
+
+  function load(r) {
+    replay = r || null;
+    trace = (r && r.trace) || [];
+    maxTick = trace.length ? trace[trace.length - 1].t : 0;
+    var m = (r && r.meta) || {}, sides = m.sides || {};
+    var A = sides.A || {}, B = sides.B || {};
+    nameA = A.strategy || 'A'; nameB = B.strategy || 'B';
+    callA = A.callLog || []; callB = B.callLog || [];
+    budgetA = A.budget || 0; smartBudgetA = A.smartBudget || 0;
+    budgetB = B.budget || 0; smartBudgetB = B.smartBudget || 0;
+    curTick = 0; playing = false;
+    fit();
+  }
+
+  // Bracketing keyframes for a tick; scores/hp/flags step discretely off `a`.
+  function bracket(tick) {
+    if (!trace.length) return null;
+    if (tick <= trace[0].t) return { a: trace[0], b: trace[0], f: 0, i: 0 };
+    for (var i = 0; i < trace.length - 1; i++) {
+      if (tick < trace[i + 1].t) {
+        var span = trace[i + 1].t - trace[i].t;
+        return { a: trace[i], b: trace[i + 1], f: span > 0 ? (tick - trace[i].t) / span : 0, i: i };
+      }
+    }
+    var last = trace[trace.length - 1];
+    return { a: last, b: last, f: 0, i: trace.length - 1 };
+  }
+
+  function callsUsed(log, tick) {
+    var cheap = 0, smart = 0, last = null;
+    for (var i = 0; i < log.length; i++) {
+      var e = log[i];
+      if (e.tick <= tick) {
+        if (e.tier === 'smart') smart++; else cheap++;
+        last = e;
+      }
+    }
+    return { cheap: cheap, smart: smart, last: last };
+  }
+
+  function drawField() {
+    var sx = canvas.width / FW, sy = canvas.height / FH;
+    ctx.save();
+    ctx.scale(sx, sy);
+    // felt
+    var g = ctx.createLinearGradient(0, 0, 0, FH);
+    g.addColorStop(0, '#141a24'); g.addColorStop(1, '#0e131b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, FW, FH);
+    // half tints
+    ctx.fillStyle = 'rgba(255,93,73,0.055)'; ctx.fillRect(0, 0, FW / 2, FH);
+    ctx.fillStyle = 'rgba(53,198,184,0.055)'; ctx.fillRect(FW / 2, 0, FW, FH);
+    // midfield
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 2;
+    ctx.setLineDash([14, 12]);
+    ctx.beginPath(); ctx.moveTo(FW / 2, 20); ctx.lineTo(FW / 2, FH - 20); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(FW / 2, FH / 2, 70, 0, Math.PI * 2); ctx.stroke();
+    // flag home zones
+    ctx.fillStyle = 'rgba(255,93,73,0.10)';
+    ctx.fillRect(60, 295, 60, 60);
+    ctx.fillStyle = 'rgba(53,198,184,0.10)';
+    ctx.fillRect(FW - 120, 295, 60, 60);
+    ctx.restore();
+    return { sx: sx, sy: sy };
+  }
+
+  function drawFlag(x, y, color, carried, s) {
+    ctx.save(); ctx.scale(s.sx, s.sy);
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 26); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(x, y - 26); ctx.lineTo(x + 18, y - 20); ctx.lineTo(x, y - 14); ctx.closePath(); ctx.fill();
+    if (carried) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, y - 6, 20, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawUnit(u0, u1, f, color, dimColor) {
+    var x = lerp(u0[0], u1[0], f), y = lerp(u0[1], u1[1], f);
+    var hp = u0[2], respawning = u0[5] === 1, hasFlag = u0[4] === 1;
+    ctx.save(); ctx.translate(x, y);
+    if (respawning) ctx.globalAlpha = 0.32;
+    // body
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0.3, Math.PI * 2 - 0.3); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.stroke();
+    // hp bar
+    var w = 26, frac = clamp(hp / 100, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(-w / 2, 14, w, 4);
+    ctx.fillStyle = frac > 0.5 ? '#8fe388' : (frac > 0.25 ? '#f2c14e' : '#e2574c');
+    ctx.fillRect(-w / 2, 14, w * frac, 4);
+    if (hasFlag) {
+      ctx.fillStyle = '#ffd76a';
+      ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(9, -8); ctx.lineTo(0, -4); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    return { x: x, y: y };
+  }
+
+  function tag(text, x, y, color, align) {
+    ctx.save();
+    ctx.font = '600 15px system-ui, sans-serif';
+    ctx.textAlign = align || 'left'; ctx.textBaseline = 'top';
+    var wpx = ctx.measureText(text).width;
+    var px = align === 'right' ? x - wpx - 16 : x + 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    var bx = align === 'right' ? x - wpx - 20 : x + 4;
+    ctx.fillRect(bx, y - 4, wpx + 12, 26);
+    ctx.fillStyle = color;
+    ctx.fillText(text, px, y);
+    ctx.restore();
+  }
+
+  function draw() {
+    fit();
+    if (!trace.length) {
+      ctx.fillStyle = '#0e131b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return null;
+    }
+    var s = drawField();
+    ctx.save(); ctx.scale(s.sx, s.sy);
+    var br = bracket(curTick), a = br.a, b = br.b, f = br.f;
+
+    // flags: f = [fax, fay, carrierA|null, fbx, fby, carrierB|null]
+    var ff = a.f || [90, 325, null, 810, 325, null];
+    var posA = null, posB = null;
+    var units = [];
+    for (var i = 0; i < 8; i++) {
+      var u0 = a.u[i], u1 = (b.u && b.u[i]) ? b.u[i] : u0;
+      var color = i < 4 ? TEAM_A : TEAM_B;
+      var p = drawUnit(u0, u1, f, color, color);
+      units.push(p);
+      if (i === 0) posA = p; // placeholder, replaced below properly
+    }
+    // carried flags ride their carrier's interpolated position
+    var cA = ff[2], cB = ff[5];
+    if (cA !== null && cA !== undefined && units[cA]) drawFlag(units[cA].x, units[cA].y - 10, TEAM_A, true, s);
+    else drawFlag(ff[0], ff[1], TEAM_A, false, s);
+    if (cB !== null && cB !== undefined && units[cB]) drawFlag(units[cB].x, units[cB].y - 10, TEAM_B, true, s);
+    else drawFlag(ff[3], ff[4], TEAM_B, false, s);
+
+    tag('A · ' + nameA, 12, 10, TEAM_A, 'left');
+    tag('B · ' + nameB, FW - 12, 10, TEAM_B, 'right');
+    ctx.restore();
+
+    var ca = callsUsed(callA, curTick), cb = callsUsed(callB, curTick);
+    var latest = null;
+    if (ca.last && (!cb.last || ca.last.tick >= cb.last.tick)) latest = { side: 'A', e: ca.last };
+    else if (cb.last) latest = { side: 'B', e: cb.last };
+
+    return {
+      tick: Math.round(curTick), maxTick: maxTick,
+      snapIndex: br.i, snapCount: trace.length,
+      scoreA: a.sa, scoreB: a.sb,
+      cheapA: ca.cheap, smartA: ca.smart, lastA: ca.last,
+      cheapB: cb.cheap, smartB: cb.smart, lastB: cb.last,
+      budgetA: budgetA, smartBudgetA: smartBudgetA,
+      budgetB: budgetB, smartBudgetB: smartBudgetB,
+      nameA: nameA, nameB: nameB,
+      latest: latest,
+      finished: curTick >= maxTick
+    };
+  }
+
+  function advance(dtMs) {
+    if (!playing || !trace.length) return;
+    curTick += dtMs * speed * TICKS_PER_SEC / 1000;
+    if (curTick >= maxTick) {
+      if (loop) { curTick = 0; }
+      else { curTick = maxTick; playing = false; }
+    }
+  }
+
+  return {
+    load: load,
+    draw: draw,
+    advance: advance,
+    setPlaying: function (b) { playing = !!b; if (b && curTick >= maxTick) curTick = 0; },
+    isPlaying: function () { return playing; },
+    setSpeed: function (x) { speed = x; },
+    getSpeed: function () { return speed; },
+    setLoop: function (b) { loop = !!b; },
+    seekTick: function (t) { curTick = clamp(t, 0, maxTick); },
+    seekSnap: function (i) { i = clamp(Math.round(i), 0, trace.length - 1); curTick = trace[i].t; },
+    getTick: function () { return curTick; },
+    getMaxTick: function () { return maxTick; },
+    getSnapCount: function () { return trace.length; },
+    snapTick: function (i) { return trace[clamp(Math.round(i), 0, trace.length - 1)].t; },
+    getNames: function () { return { a: nameA, b: nameB }; },
+    resize: fit
+  };
+}
+
+global.ArenaReplay = ArenaReplay;
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+(function () {
+'use strict';
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) {
+  return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function timeAgo(ts) {
+  var dt = Date.now() - new Date(ts).getTime();
+  if (isNaN(dt) || dt < 0) return 'just now';
+  var m = Math.floor(dt / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' min ago';
+  var h = Math.floor(m / 60);
+  if (h < 24) return h + ' hr ago';
+  return Math.floor(h / 24) + ' days ago';
+}
+
+var viewer = ArenaReplay($('cv'));
+var currentFile = null, lastFrame = 0, data = null;
+
+function paint(info) {
+  if (!info) return;
+  $('scoreA').textContent = info.scoreA;
+  $('scoreB').textContent = info.scoreB;
+  $('callsA').textContent = 'smart ' + info.smartA + '/' + info.smartBudgetA + ' · cheap ' + info.cheapA + '/' + info.budgetA;
+  $('callsB').textContent = 'smart ' + info.smartB + '/' + info.smartBudgetB + ' · cheap ' + info.cheapB + '/' + info.budgetB;
+  $('lastCallText').textContent = info.latest
+    ? ('(' + info.latest.side + ', ' + info.latest.e.tier + ') ' + info.latest.e.note)
+    : '— nothing ordered yet —';
+}
+function loop(ts) {
+  if (lastFrame) viewer.advance(ts - lastFrame);
+  lastFrame = ts;
+  paint(viewer.draw());
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function loadBout(file, whenText) {
+  if (!file) return;
+  fetch('replays/' + file).then(function (r) {
+    if (!r.ok) throw new Error('replay HTTP ' + r.status);
+    return r.json();
+  }).then(function (replay) {
+    currentFile = file;
+    viewer.load(replay);
+    viewer.setLoop(true);
+    viewer.setSpeed(2);
+    viewer.setPlaying(true);
+    var names = viewer.getNames();
+    $('whoA').textContent = 'A · ' + names.a;
+    $('whoB').textContent = 'B · ' + names.b;
+    $('boutWhat').textContent = names.a + '  vs  ' + names.b;
+    $('boutWhen').textContent = whenText || '';
+    var link = $('fullReplay');
+    link.href = 'replay.html?r=' + encodeURIComponent(file);
+    link.hidden = false;
+    paint(viewer.draw());
+  }).catch(function (e) {
+    $('boutWhat').textContent = 'the latest replay is still being written — boards below are live';
+  });
+}
+
+function raceBar(elA, elB, capA, capB, fx, label) {
+  var total = Math.max(1, fx.defensive + fx.counterpuncher);
+  elA.style.width = (100 * fx.defensive / total) + '%';
+  elB.style.width = (100 * fx.counterpuncher / total) + '%';
+  elA.textContent = 'defensive · ' + fx.defensive;
+  elB.textContent = fx.counterpuncher + ' · counterpuncher';
+  capA.textContent = label + ' · ' + fx.bouts + ' meetings' + (fx.draws ? ' · ' + fx.draws + ' drawn' : '');
+  capB.textContent = fx.defensive > fx.counterpuncher ? 'defensive holds it'
+    : (fx.counterpuncher > fx.defensive ? 'counterpuncher holds it' : 'dead level');
+}
+
+function render(d) {
+  data = d;
+  var ar = d.arena, se = d.season;
+  if (ar) {
+    // crown race + full board
+    $('crownRace').classList.remove('hidden');
+    raceBar($('raceAllA'), $('raceAllB'), $('raceAllCapA'), $('raceAllCapB'), ar.fixture, 'all-time');
+    if (ar.fixture.recent) raceBar($('raceRecA'), $('raceRecB'), $('raceRecCapA'), $('raceRecCapB'), ar.fixture.recent, 'last 1,000');
+    var names = Object.keys(ar.tally).sort(function (x, y) { return ar.tally[y].w - ar.tally[x].w; });
+    var maxW = 1; names.forEach(function (n) { if (ar.tally[n].w > maxW) maxW = ar.tally[n].w; });
+    $('tallyGrid').innerHTML = names.map(function (n) {
+      var s = ar.tally[n], played = s.w + s.l + s.d;
+      var pct = played ? Math.round(100 * s.w / played) : 0;
+      return '<div class="card strat"><div class="name">' + esc(n) + '</div>' +
+        '<div class="wld"><span class="w">' + s.w + 'W</span> · <span class="l">' + s.l + 'L</span> · <span class="d">' + s.d + 'D</span></div>' +
+        '<div class="bar"><i style="width:' + Math.round(100 * s.w / maxW) + '%"></i></div>' +
+        '<div class="pct">' + played + ' bouts · ' + pct + '% wins</div></div>';
+    }).join('');
+    // oddities
+    $('oddities').classList.remove('hidden');
+    var odds = (ar.records || []).map(function (r) {
+      return '<div class="card odd"><div class="label">' + esc(r.label) + '</div>' +
+        '<div class="value">' + esc(r.value) + '</div><div class="detail">' + esc(r.detail) + '</div></div>';
+    });
+    odds.push('<div class="card odd"><div class="label">Dead heats</div><div class="value">' + ar.draws +
+      '</div><div class="detail">drawn bouts in ' + ar.bouts + ' — the squads simply would not blink</div></div>');
+    odds.push('<div class="card odd"><div class="label">Clean sheets</div><div class="value">' + ar.shutouts +
+      '</div><div class="detail">bouts won 3–0, flag never seriously threatened</div></div>');
+    odds.push('<div class="card odd"><div class="label">Bouts and counting</div><div class="value">' + ar.bouts +
+      '</div><div class="detail">the pit runs around the clock; a new bout lands every minute or so</div></div>');
+    $('oddGrid').innerHTML = odds.join('');
+    // fresh from the pit
+    $('freshPit').classList.remove('hidden');
+    $('matchList').innerHTML = (ar.last8 || []).map(function (r) {
+      var winName = r.winner === 'draw' ? null : (r.winner === 'B' ? r.b : r.a);
+      var badge = winName ? '<span class="winner">&#9733; ' + esc(winName) + '</span>'
+                           : '<span class="drawbadge">draw — nobody blinks</span>';
+      var link = r.replay ? '<a class="rlink" href="replay.html?r=' + encodeURIComponent(r.replay) + '">watch replay &rarr;</a>' : '';
+      return '<div class="match"><span class="when">' + esc(timeAgo(r.ts)) + '</span>' +
+        '<span class="versus">' + esc(r.a) + ' <span style="color:var(--dim)">vs</span> ' + esc(r.b) + ' &middot; ' + badge + '</span>' +
+        '<span class="score">' + r.scoreA + ' – ' + r.scoreB + '</span>' + link + '</div>';
+    }).join('');
+    // now playing: the newest bout's replay, if we're not already showing it
+    var latest = (ar.last8 || [])[0];
+    if (latest && latest.replay && latest.replay !== currentFile) {
+      loadBout(latest.replay, 'bout #' + ar.bouts + ' · ' + timeAgo(latest.ts));
+    }
+  }
+  if (se) {
+    $('seasonSpot').classList.remove('hidden');
+    $('seasonLede').textContent = se.tournamentsRun + ' tournaments played · ' + se.innovations +
+      ' innovation breaks so far — bred children, fleet-authored counters, and the odd hand-written ambush.';
+    var c = se.champion || {};
+    var lastHist = (se.recent || [])[0];
+    $('champCard').innerHTML =
+      '<div class="crown">&#9819; reigning champion</div>' +
+      '<div class="name">' + esc(c.name || se.championFile || '—') + '</div>' +
+      '<div class="by">authored by ' + esc(c.author || 'unknown') + (c.calls ? ' · ' + c.calls + ' calls a match' : '') + '</div>' +
+      (c.description ? '<div class="desc">' + esc(c.description) + '</div>' : '') +
+      (lastHist ? '<div class="meta">took tournament #' + lastHist.n + (lastHist.runnerUp ? ' from ' + esc(lastHist.runnerUp) : '') +
+        (se.finalScore ? ', ' + esc(se.finalScore) + ' in the final' : '') + '</div>' : '');
+    $('histTable').innerHTML = (se.recent || []).map(function (h) {
+      return '<tr><td class="n">#' + h.n + '</td><td><span class="cw">' + esc(h.champion) + '</span>' +
+        (h.runnerUp ? '<div class="ro">over ' + esc(h.runnerUp) + '</div>' : '') + '</td></tr>';
+    }).join('');
+    if (se.newest) {
+      $('newestWrap').innerHTML = '<h2 style="font-size:17px">Newest in the pool</h2>' +
+        '<div class="card"><div class="name" style="font-weight:700;overflow-wrap:anywhere">' + esc(se.newest.name) + '</div>' +
+        '<div class="by" style="color:var(--dim);font-size:13px">by ' + esc(se.newest.author) + '</div>' +
+        (se.newest.description ? '<div style="font-size:14px;margin-top:6px;overflow-wrap:anywhere">' + esc(se.newest.description) + '</div>' : '') + '</div>';
+    }
+  }
+  $('lastUpdated').textContent = 'data generated ' + new Date(d.generatedAt).toLocaleTimeString() + ' · checked ' + new Date().toLocaleTimeString();
+  $('err').textContent = '';
+}
+
+function refresh() {
+  fetch('show-data.json', { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(render).catch(function (e) {
+    $('err').textContent = 'Could not fetch the show data: ' + e.message + ' — the pit is quiet for a moment.';
+  });
+}
+$('btnNewest').addEventListener('click', function () {
+  fetch('show-data.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+    render(d);
+    var latest = (d.arena && d.arena.last8 || [])[0];
+    if (latest && latest.replay) loadBout(latest.replay, 'bout #' + d.arena.bouts + ' · ' + timeAgo(latest.ts));
+  }).catch(function () { /* the refresh loop will catch up */ });
+});
+window.addEventListener('resize', function () { viewer.resize(); paint(viewer.draw()); });
+refresh();
+setInterval(refresh, 60000);
+})();
+</script>
+</body>
+</html>
