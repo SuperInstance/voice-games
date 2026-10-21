@@ -1,21 +1,21 @@
 {
- "generatedAt": "2026-10-21T12:52:23.328Z",
+ "generatedAt": "2026-10-21T13:07:27.687Z",
  "arena": {
-  "bouts": 17048,
+  "bouts": 17068,
   "tally": {
    "aggressive": {
-    "w": 9576,
-    "l": 1814,
+    "w": 9586,
+    "l": 1817,
     "d": 16
    },
    "defensive": {
-    "w": 3781,
-    "l": 7573,
+    "w": 3784,
+    "l": 7584,
     "d": 12
    },
    "counterpuncher": {
-    "w": 3671,
-    "l": 7641,
+    "w": 3678,
+    "l": 7647,
     "d": 12
    }
   },
@@ -24,10 +24,10 @@
     "defensive",
     "counterpuncher"
    ],
-   "defensive": 2916,
-   "counterpuncher": 2722,
+   "defensive": 2917,
+   "counterpuncher": 2728,
    "draws": 4,
-   "bouts": 5642,
+   "bouts": 5649,
    "recent": {
     "defensive": 503,
     "counterpuncher": 496,
@@ -37,108 +37,108 @@
   },
   "draws": 20,
   "shutouts": 577,
-  "lastTs": "2026-10-21T12:51:43.425Z",
+  "lastTs": "2026-10-21T13:07:24.868Z",
   "last8": [
    {
-    "ts": "2026-10-21T12:51:43.425Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "B",
-    "scoreA": 2,
-    "scoreB": 3,
-    "replay": "2026-10-21T12-51-41-549Z.json"
-   },
-   {
-    "ts": "2026-10-21T12:50:56.369Z",
+    "ts": "2026-10-21T13:07:24.868Z",
     "a": "aggressive",
     "b": "defensive",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-21T12-50-54-520Z.json"
+    "scoreB": 1,
+    "replay": "2026-10-21T13-07-22-984Z.json"
    },
    {
-    "ts": "2026-10-21T12:50:09.289Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-21T12-50-07-645Z.json"
-   },
-   {
-    "ts": "2026-10-21T12:49:22.157Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-21T12-49-20-305Z.json"
-   },
-   {
-    "ts": "2026-10-21T12:48:35.076Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-21T12-48-33-220Z.json"
-   },
-   {
-    "ts": "2026-10-21T12:47:48.023Z",
+    "ts": "2026-10-21T13:06:37.797Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 1,
-    "scoreB": 2,
-    "replay": "2026-10-21T12-47-46-233Z.json"
+    "scoreB": 3,
+    "replay": "2026-10-21T13-06-35-987Z.json"
    },
    {
-    "ts": "2026-10-21T12:47:00.950Z",
+    "ts": "2026-10-21T13:05:50.726Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 2,
+    "replay": "2026-10-21T13-05-48-944Z.json"
+   },
+   {
+    "ts": "2026-10-21T13:05:03.656Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-21T13-05-01-816Z.json"
+   },
+   {
+    "ts": "2026-10-21T13:04:16.584Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "B",
+    "scoreA": 2,
+    "scoreB": 3,
+    "replay": "2026-10-21T13-04-14-775Z.json"
+   },
+   {
+    "ts": "2026-10-21T13:03:29.505Z",
     "a": "aggressive",
     "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 1,
-    "replay": "2026-10-21T12-46-59-064Z.json"
+    "replay": "2026-10-21T13-03-27-666Z.json"
    },
    {
+    "ts": "2026-10-21T13:02:42.422Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 1,
+    "replay": "2026-10-21T13-02-40-550Z.json"
+   },
+   {
+    "ts": "2026-10-21T13:01:55.343Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "B",
+    "scoreA": 2,
+    "scoreB": 3,
+    "replay": "2026-10-21T13-01-53-504Z.json"
+   }
+  ],
+  "nowPlaying": [
+   {
+    "file": "2026-10-21T12-46-59-064Z.json",
+    "ts": "2026-10-21T12:47:00.950Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 1
+   },
+   {
+    "file": "2026-10-21T12-46-12-036Z.json",
     "ts": "2026-10-21T12:46:13.910Z",
     "a": "aggressive",
     "b": "defensive",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-21T12-46-12-036Z.json"
-   }
-  ],
-  "nowPlaying": [
-   {
-    "file": "2026-10-21T12-32-04-793Z.json",
-    "ts": "2026-10-21T12:32:06.650Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1
-   },
-   {
-    "file": "2026-10-21T12-31-17-815Z.json",
-    "ts": "2026-10-21T12:31:19.571Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
     "scoreB": 2
    },
    {
-    "file": "2026-10-21T12-30-30-674Z.json",
-    "ts": "2026-10-21T12:30:32.517Z",
-    "a": "aggressive",
+    "file": "2026-10-21T12-45-25-040Z.json",
+    "ts": "2026-10-21T12:45:26.836Z",
+    "a": "defensive",
     "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1
+    "winner": "B",
+    "scoreA": 2,
+    "scoreB": 2
    }
   ],
   "records": [
