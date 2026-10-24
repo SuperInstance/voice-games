@@ -1,21 +1,21 @@
 {
- "generatedAt": "2026-10-24T07:22:19.459Z",
+ "generatedAt": "2026-10-24T07:37:26.395Z",
  "arena": {
-  "bouts": 22134,
+  "bouts": 22153,
   "tally": {
    "aggressive": {
-    "w": 12404,
-    "l": 2371,
+    "w": 12414,
+    "l": 2374,
     "d": 21
    },
    "defensive": {
-    "w": 4919,
-    "l": 9823,
+    "w": 4927,
+    "l": 9828,
     "d": 15
    },
    "counterpuncher": {
-    "w": 4786,
-    "l": 9915,
+    "w": 4787,
+    "l": 9926,
     "d": 14
    }
   },
@@ -24,121 +24,121 @@
     "defensive",
     "counterpuncher"
    ],
-   "defensive": 3788,
-   "counterpuncher": 3546,
+   "defensive": 3793,
+   "counterpuncher": 3547,
    "draws": 4,
-   "bouts": 7338,
+   "bouts": 7344,
    "recent": {
-    "defensive": 521,
-    "counterpuncher": 479,
+    "defensive": 524,
+    "counterpuncher": 476,
     "draws": 0,
     "bouts": 1000
    }
   },
   "draws": 25,
   "shutouts": 732,
-  "lastTs": "2026-10-24T07:21:48.673Z",
+  "lastTs": "2026-10-24T07:36:43.032Z",
   "last8": [
    {
-    "ts": "2026-10-24T07:21:48.673Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "B",
-    "scoreA": 2,
-    "scoreB": 2,
-    "replay": "2026-10-24T07-21-46-886Z.json"
-   },
-   {
-    "ts": "2026-10-24T07:21:01.590Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "B",
-    "scoreA": 2,
-    "scoreB": 2,
-    "replay": "2026-10-24T07-20-59-811Z.json"
-   },
-   {
-    "ts": "2026-10-24T07:20:14.526Z",
+    "ts": "2026-10-24T07:36:43.032Z",
     "a": "aggressive",
     "b": "defensive",
+    "winner": "B",
+    "scoreA": 2,
+    "scoreB": 3,
+    "replay": "2026-10-24T07-36-41-163Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:35:55.952Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-24T07-35-54-173Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:35:08.886Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-24T07-35-07-016Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:34:21.812Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "B",
+    "scoreA": 2,
+    "scoreB": 3,
+    "replay": "2026-10-24T07-34-19-995Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:33:34.747Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 1,
+    "replay": "2026-10-24T07-33-32-935Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:32:47.689Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 2,
+    "replay": "2026-10-24T07-32-45-896Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:32:00.612Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-24T07-31-58-763Z.json"
+   },
+   {
+    "ts": "2026-10-24T07:31:13.566Z",
+    "a": "defensive",
+    "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 1,
-    "replay": "2026-10-24T07-20-12-708Z.json"
-   },
+    "replay": "2026-10-24T07-31-11-731Z.json"
+   }
+  ],
+  "nowPlaying": [
    {
-    "ts": "2026-10-24T07:19:27.444Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-24T07-19-25-629Z.json"
-   },
-   {
-    "ts": "2026-10-24T07:18:40.376Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-24T07-18-38-515Z.json"
-   },
-   {
-    "ts": "2026-10-24T07:17:53.294Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-24T07-17-51-466Z.json"
-   },
-   {
+    "file": "2026-10-24T07-17-04-427Z.json",
     "ts": "2026-10-24T07:17:06.221Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 1,
-    "scoreB": 1,
-    "replay": "2026-10-24T07-17-04-427Z.json"
+    "scoreB": 1
    },
    {
+    "file": "2026-10-24T07-16-17-330Z.json",
     "ts": "2026-10-24T07:16:19.155Z",
     "a": "aggressive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 2,
-    "scoreB": 3,
-    "replay": "2026-10-24T07-16-17-330Z.json"
-   }
-  ],
-  "nowPlaying": [
-   {
-    "file": "2026-10-24T07-02-10-102Z.json",
-    "ts": "2026-10-24T07:02:11.948Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2
-   },
-   {
-    "file": "2026-10-24T07-01-23-040Z.json",
-    "ts": "2026-10-24T07:01:24.890Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "B",
-    "scoreA": 2,
     "scoreB": 3
    },
    {
-    "file": "2026-10-24T07-00-36-041Z.json",
-    "ts": "2026-10-24T07:00:37.845Z",
-    "a": "defensive",
-    "b": "counterpuncher",
+    "file": "2026-10-24T07-15-30-271Z.json",
+    "ts": "2026-10-24T07:15:32.107Z",
+    "a": "aggressive",
+    "b": "defensive",
     "winner": "A",
-    "scoreA": 1,
-    "scoreB": 1
+    "scoreA": 3,
+    "scoreB": 2
    }
   ],
   "records": [
@@ -165,17 +165,22 @@
   ]
  },
  "season": {
-  "tournamentsRun": 110,
+  "tournamentsRun": 111,
   "innovations": 36,
   "champion": {
-   "file": "pairraid-sentry-breaker.json",
-   "name": "pairraid-sentry-breaker",
-   "author": "claude",
-   "description": "Exploits lone-sentry champion lonesentryanvil133123-x-lonesentryanvil13312-2: its red runs their_flag alone as a non-fighting mover and only yellow guards its flag, so a red+blue pair raid (mover behind a fighting attack escort) beats the lone sentry 2v1 while green patrols centre to shred the lone red runner; its unit_down reflex sends a pair attacking and abandons shape, so this strategy holds shape when a man down instead of chasing; its their_flag_dropped pair arrives as non-fighting movers, so this pair arrives with a fighting nearest escort; and its fast 450t cheap pulse burned 26/28 calls in one semifinal, so an 800t/3200t pulse on a 42 budget drags the match long, can never hard-stop inside the 24000t cap (max 30 cheap + 4 smart), and leaves the champion frozen or spent late while the pair raid keeps scoring.",
-   "calls": 42
+   "file": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-3.json",
+   "name": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-3",
+   "author": "breeder",
+   "description": "Bred from pincer-meatgrinder × pincermeatgrinder-x-flagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper13-3. cheap cadence→1800; smart cadence→2700; order select→all.",
+   "calls": 32
   },
-  "championFile": "pairraid-sentry-breaker.json",
+  "championFile": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-3.json",
   "recent": [
+   {
+    "n": 111,
+    "champion": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-3",
+    "runnerUp": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-2"
+   },
    {
     "n": 110,
     "champion": "pairraid-sentry-breaker",
@@ -199,11 +204,6 @@
    {
     "n": 106,
     "champion": "lonesentryanvil133123-x-lonesentryanvil13312-3",
-    "runnerUp": "lonesentryanvil133123-x-lonesentryanvil13312-2"
-   },
-   {
-    "n": 105,
-    "champion": "lonesentryanvil133123-x-lonesentryanvil13312-1",
     "runnerUp": "lonesentryanvil133123-x-lonesentryanvil13312-2"
    }
   ],
