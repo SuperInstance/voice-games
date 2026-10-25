@@ -1,21 +1,21 @@
 {
- "generatedAt": "2026-10-25T01:22:17.620Z",
+ "generatedAt": "2026-10-25T01:37:17.198Z",
  "arena": {
-  "bouts": 23511,
+  "bouts": 23530,
   "tally": {
    "aggressive": {
-    "w": 13185,
-    "l": 2505,
+    "w": 13193,
+    "l": 2510,
     "d": 24
    },
    "defensive": {
-    "w": 5207,
-    "l": 10451,
+    "w": 5214,
+    "l": 10457,
     "d": 17
    },
    "counterpuncher": {
-    "w": 5091,
-    "l": 10527,
+    "w": 5095,
+    "l": 10535,
     "d": 15
    }
   },
@@ -24,10 +24,10 @@
     "defensive",
     "counterpuncher"
    ],
-   "defensive": 4013,
-   "counterpuncher": 3780,
+   "defensive": 4017,
+   "counterpuncher": 3782,
    "draws": 4,
-   "bouts": 7797,
+   "bouts": 7803,
    "recent": {
     "defensive": 511,
     "counterpuncher": 489,
@@ -36,109 +36,109 @@
    }
   },
   "draws": 28,
-  "shutouts": 781,
-  "lastTs": "2026-10-25T01:22:07.196Z",
+  "shutouts": 782,
+  "lastTs": "2026-10-25T01:37:01.509Z",
   "last8": [
    {
-    "ts": "2026-10-25T01:22:07.196Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 2,
-    "scoreB": 2,
-    "replay": "2026-10-25T01-22-05-381Z.json"
-   },
-   {
-    "ts": "2026-10-25T01:21:20.110Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-25T01-21-18-267Z.json"
-   },
-   {
-    "ts": "2026-10-25T01:20:33.031Z",
+    "ts": "2026-10-25T01:37:01.509Z",
     "a": "aggressive",
     "b": "defensive",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 2,
-    "replay": "2026-10-25T01-20-31-183Z.json"
+    "replay": "2026-10-25T01-36-59-638Z.json"
    },
    {
-    "ts": "2026-10-25T01:19:45.950Z",
+    "ts": "2026-10-25T01:36:14.427Z",
     "a": "defensive",
     "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 2,
+    "replay": "2026-10-25T01-36-12-655Z.json"
+   },
+   {
+    "ts": "2026-10-25T01:35:27.346Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-25T01-35-25-491Z.json"
+   },
+   {
+    "ts": "2026-10-25T01:34:40.292Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 1,
+    "replay": "2026-10-25T01-34-38-511Z.json"
+   },
+   {
+    "ts": "2026-10-25T01:33:53.217Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-25T01-33-51-376Z.json"
+   },
+   {
+    "ts": "2026-10-25T01:33:06.136Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-25T01-33-04-317Z.json"
+   },
+   {
+    "ts": "2026-10-25T01:32:19.054Z",
+    "a": "aggressive",
+    "b": "defensive",
     "winner": "B",
     "scoreA": 2,
-    "scoreB": 2,
-    "replay": "2026-10-25T01-19-44-148Z.json"
+    "scoreB": 3,
+    "replay": "2026-10-25T01-32-17-167Z.json"
    },
    {
-    "ts": "2026-10-25T01:18:58.868Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-25T01-18-56-999Z.json"
-   },
-   {
-    "ts": "2026-10-25T01:18:11.809Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-25T01-18-09-958Z.json"
-   },
-   {
-    "ts": "2026-10-25T01:17:24.729Z",
+    "ts": "2026-10-25T01:31:31.972Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 1,
-    "scoreB": 3,
-    "replay": "2026-10-25T01-17-22-926Z.json"
-   },
+    "scoreB": 2,
+    "replay": "2026-10-25T01-31-30-216Z.json"
+   }
+  ],
+  "nowPlaying": [
    {
+    "file": "2026-10-25T01-16-35-793Z.json",
     "ts": "2026-10-25T01:16:37.649Z",
     "a": "aggressive",
     "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-25T01-16-35-793Z.json"
-   }
-  ],
-  "nowPlaying": [
+    "scoreB": 2
+   },
    {
-    "file": "2026-10-25T01-01-41-440Z.json",
-    "ts": "2026-10-25T01:01:43.300Z",
+    "file": "2026-10-25T01-15-48-693Z.json",
+    "ts": "2026-10-25T01:15:50.568Z",
     "a": "aggressive",
     "b": "defensive",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2
+    "winner": "B",
+    "scoreA": 1,
+    "scoreB": 3
    },
    {
-    "file": "2026-10-25T01-00-54-444Z.json",
-    "ts": "2026-10-25T01:00:56.219Z",
+    "file": "2026-10-25T01-15-01-683Z.json",
+    "ts": "2026-10-25T01:15:03.487Z",
     "a": "defensive",
     "b": "counterpuncher",
-    "winner": "B",
-    "scoreA": 2,
-    "scoreB": 2
-   },
-   {
-    "file": "2026-10-25T01-00-07-358Z.json",
-    "ts": "2026-10-25T01:00:09.140Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
     "winner": "A",
-    "scoreA": 3,
-    "scoreB": 2
+    "scoreA": 1,
+    "scoreB": 1
    }
   ],
   "records": [
@@ -165,7 +165,7 @@
   ]
  },
  "season": {
-  "tournamentsRun": 115,
+  "tournamentsRun": 116,
   "innovations": 38,
   "champion": {
    "file": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123.json",
@@ -176,6 +176,11 @@
   },
   "championFile": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123.json",
   "recent": [
+   {
+    "n": 116,
+    "champion": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123",
+    "runnerUp": "lonesentryanvil133123-x-lonesentryanvil13312-1-s123"
+   },
    {
     "n": 115,
     "champion": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123",
@@ -200,11 +205,6 @@
     "n": 111,
     "champion": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-3",
     "runnerUp": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-2"
-   },
-   {
-    "n": 110,
-    "champion": "pairraid-sentry-breaker",
-    "runnerUp": "lonesentryanvil133123-x-lonesentryanvil13312-2"
    }
   ],
   "finalScore": null,
