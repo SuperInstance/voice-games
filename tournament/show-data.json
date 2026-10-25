@@ -1,21 +1,21 @@
 {
- "generatedAt": "2026-10-25T07:22:17.348Z",
+ "generatedAt": "2026-10-25T07:37:19.191Z",
  "arena": {
-  "bouts": 23970,
+  "bouts": 23989,
   "tally": {
    "aggressive": {
-    "w": 13434,
-    "l": 2562,
+    "w": 13443,
+    "l": 2566,
     "d": 24
    },
    "defensive": {
-    "w": 5307,
-    "l": 10657,
+    "w": 5315,
+    "l": 10662,
     "d": 17
    },
    "counterpuncher": {
-    "w": 5201,
-    "l": 10723,
+    "w": 5203,
+    "l": 10733,
     "d": 15
    }
   },
@@ -24,121 +24,121 @@
     "defensive",
     "counterpuncher"
    ],
-   "defensive": 4086,
-   "counterpuncher": 3860,
+   "defensive": 4091,
+   "counterpuncher": 3861,
    "draws": 4,
-   "bouts": 7950,
+   "bouts": 7956,
    "recent": {
-    "defensive": 504,
-    "counterpuncher": 496,
+    "defensive": 506,
+    "counterpuncher": 494,
     "draws": 0,
     "bouts": 1000
    }
   },
   "draws": 28,
-  "shutouts": 793,
-  "lastTs": "2026-10-25T07:22:12.570Z",
+  "shutouts": 795,
+  "lastTs": "2026-10-25T07:37:07.012Z",
   "last8": [
    {
-    "ts": "2026-10-25T07:22:12.570Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-25T07-22-10-758Z.json"
-   },
-   {
-    "ts": "2026-10-25T07:21:25.498Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-25T07-21-23-670Z.json"
-   },
-   {
-    "ts": "2026-10-25T07:20:38.458Z",
+    "ts": "2026-10-25T07:37:07.012Z",
     "a": "aggressive",
     "b": "defensive",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 1,
-    "replay": "2026-10-25T07-20-36-647Z.json"
+    "replay": "2026-10-25T07-37-05-178Z.json"
    },
    {
-    "ts": "2026-10-25T07:19:51.380Z",
+    "ts": "2026-10-25T07:36:19.942Z",
     "a": "defensive",
     "b": "counterpuncher",
-    "winner": "B",
-    "scoreA": 2,
-    "scoreB": 3,
-    "replay": "2026-10-25T07-19-49-574Z.json"
-   },
-   {
-    "ts": "2026-10-25T07:19:04.312Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "B",
-    "scoreA": 2,
-    "scoreB": 3,
-    "replay": "2026-10-25T07-19-02-473Z.json"
-   },
-   {
-    "ts": "2026-10-25T07:18:17.235Z",
-    "a": "aggressive",
-    "b": "defensive",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 2,
-    "replay": "2026-10-25T07-18-15-419Z.json"
+    "replay": "2026-10-25T07-36-18-150Z.json"
    },
    {
-    "ts": "2026-10-25T07:17:30.183Z",
+    "ts": "2026-10-25T07:35:32.862Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "B",
+    "scoreA": 2,
+    "scoreB": 3,
+    "replay": "2026-10-25T07-35-30-996Z.json"
+   },
+   {
+    "ts": "2026-10-25T07:34:45.781Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 1,
+    "replay": "2026-10-25T07-34-43-916Z.json"
+   },
+   {
+    "ts": "2026-10-25T07:33:58.710Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-25T07-17-28-391Z.json"
+    "scoreB": 0,
+    "replay": "2026-10-25T07-33-56-846Z.json"
    },
    {
+    "ts": "2026-10-25T07:33:11.632Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 1,
+    "replay": "2026-10-25T07-33-09-840Z.json"
+   },
+   {
+    "ts": "2026-10-25T07:32:24.550Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 1,
+    "replay": "2026-10-25T07-32-22-760Z.json"
+   },
+   {
+    "ts": "2026-10-25T07:31:37.475Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 2,
+    "replay": "2026-10-25T07-31-35-666Z.json"
+   }
+  ],
+  "nowPlaying": [
+   {
+    "file": "2026-10-25T07-16-41-229Z.json",
     "ts": "2026-10-25T07:16:43.114Z",
     "a": "aggressive",
     "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-25T07-16-41-229Z.json"
-   }
-  ],
-  "nowPlaying": [
-   {
-    "file": "2026-10-25T07-01-47-015Z.json",
-    "ts": "2026-10-25T07:01:48.807Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "A",
-    "scoreA": 2,
     "scoreB": 1
    },
    {
-    "file": "2026-10-25T07-00-59-904Z.json",
-    "ts": "2026-10-25T07:01:01.725Z",
+    "file": "2026-10-25T07-15-54-180Z.json",
+    "ts": "2026-10-25T07:15:56.034Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 1
+   },
+   {
+    "file": "2026-10-25T07-15-07-129Z.json",
+    "ts": "2026-10-25T07:15:08.951Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "A",
-    "scoreA": 2,
-    "scoreB": 2
-   },
-   {
-    "file": "2026-10-25T07-00-12-793Z.json",
-    "ts": "2026-10-25T07:00:14.645Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
     "scoreA": 3,
-    "scoreB": 2
+    "scoreB": 1
    }
   ],
   "records": [
@@ -165,17 +165,22 @@
   ]
  },
  "season": {
-  "tournamentsRun": 117,
-  "innovations": 38,
+  "tournamentsRun": 118,
+  "innovations": 39,
   "champion": {
-   "file": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123.json",
-   "name": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123",
-   "author": "breeder",
-   "description": "Bred from lonesentryanvil13312-3 × lonesentryanvil1331-2. cheap cadence→1200; smart cadence→1800; smart calls→2; budget→32.",
+   "file": "sentry-overload-swarm.json",
+   "name": "sentry-overload-swarm",
+   "author": "claude",
+   "description": "Exploits the champion lonesentryanvil133123-x-lonesentryanvil13312-2-s123: yellow alone defends its flag and red runs alone. A double-runner swarm (red + blue, green as escort) overloads the lone sentry, yellow patrols centre to cut red's return route, and they_scored triggers a full counter-rush against its two-man turtle while its red is stranded upfield.",
    "calls": 32
   },
-  "championFile": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123.json",
+  "championFile": "sentry-overload-swarm.json",
   "recent": [
+   {
+    "n": 118,
+    "champion": "sentry-overload-swarm",
+    "runnerUp": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123"
+   },
    {
     "n": 117,
     "champion": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123",
@@ -200,19 +205,14 @@
     "n": 113,
     "champion": "lonesentryanvil133123-x-lonesentryanvil13312-3-s123",
     "runnerUp": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123"
-   },
-   {
-    "n": 112,
-    "champion": "lonesentryanvil133123-x-lonesentryanvil13312-2-s123",
-    "runnerUp": "pincermeatgrinder-x-pincermeatgrinderxflagpincerviperxglacierbreakerxglacier13xflagpincerviper1xflagpincerscrambler3xflagpincerviperxglacierbreakerxglacier13xflagpincerviper133-3"
    }
   ],
   "finalScore": null,
   "newest": {
-   "file": "lone-exploit.json",
-   "name": "lone-exploit",
-   "author": "minimax",
-   "description": "Exploits the champion's reliance on a single high-value unit by targeting their flag carrier and disrupting their coordination."
+   "file": "sentry-overload-swarm.json",
+   "name": "sentry-overload-swarm",
+   "author": "claude",
+   "description": "Exploits the champion lonesentryanvil133123-x-lonesentryanvil13312-2-s123: yellow alone defends its flag and red runs alone. A double-runner swarm (red + blue, green as escort) overloads the lone sentry, yellow patrols centre to cut red's return route, and they_scored triggers a full counter-rush against its two-man turtle while its red is stranded upfield."
   }
  }
 }
