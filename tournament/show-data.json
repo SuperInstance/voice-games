@@ -1,21 +1,21 @@
 {
- "generatedAt": "2026-10-26T17:37:28.473Z",
+ "generatedAt": "2026-10-26T17:52:24.858Z",
  "arena": {
-  "bouts": 26589,
+  "bouts": 26608,
   "tally": {
    "aggressive": {
-    "w": 14923,
-    "l": 2819,
+    "w": 14933,
+    "l": 2822,
     "d": 24
    },
    "defensive": {
-    "w": 5876,
-    "l": 11834,
+    "w": 5880,
+    "l": 11843,
     "d": 17
    },
    "counterpuncher": {
-    "w": 5762,
-    "l": 11908,
+    "w": 5767,
+    "l": 11915,
     "d": 15
    }
   },
@@ -24,121 +24,121 @@
     "defensive",
     "counterpuncher"
    ],
-   "defensive": 4528,
-   "counterpuncher": 4291,
+   "defensive": 4530,
+   "counterpuncher": 4295,
    "draws": 4,
-   "bouts": 8823,
+   "bouts": 8829,
    "recent": {
-    "defensive": 501,
-    "counterpuncher": 499,
+    "defensive": 502,
+    "counterpuncher": 498,
     "draws": 0,
     "bouts": 1000
    }
   },
   "draws": 28,
-  "shutouts": 886,
-  "lastTs": "2026-10-26T17:36:53.693Z",
+  "shutouts": 888,
+  "lastTs": "2026-10-26T17:51:48.214Z",
   "last8": [
    {
-    "ts": "2026-10-26T17:36:53.693Z",
+    "ts": "2026-10-26T17:51:48.214Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 0,
+    "replay": "2026-10-26T17-51-46-317Z.json"
+   },
+   {
+    "ts": "2026-10-26T17:51:01.134Z",
+    "a": "defensive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 2,
+    "scoreB": 1,
+    "replay": "2026-10-26T17-50-59-324Z.json"
+   },
+   {
+    "ts": "2026-10-26T17:50:14.053Z",
+    "a": "aggressive",
+    "b": "counterpuncher",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 2,
+    "replay": "2026-10-26T17-50-12-348Z.json"
+   },
+   {
+    "ts": "2026-10-26T17:49:26.933Z",
+    "a": "aggressive",
+    "b": "defensive",
+    "winner": "A",
+    "scoreA": 3,
+    "scoreB": 0,
+    "replay": "2026-10-26T17-49-25-051Z.json"
+   },
+   {
+    "ts": "2026-10-26T17:48:39.855Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 2,
     "scoreB": 2,
-    "replay": "2026-10-26T17-36-51-935Z.json"
+    "replay": "2026-10-26T17-48-38-063Z.json"
    },
    {
-    "ts": "2026-10-26T17:36:06.610Z",
+    "ts": "2026-10-26T17:47:52.778Z",
     "a": "aggressive",
     "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 1,
-    "replay": "2026-10-26T17-36-04-808Z.json"
+    "replay": "2026-10-26T17-47-50-919Z.json"
    },
    {
-    "ts": "2026-10-26T17:35:19.528Z",
+    "ts": "2026-10-26T17:47:05.718Z",
     "a": "aggressive",
     "b": "defensive",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-26T17-35-17-705Z.json"
+    "scoreB": 2,
+    "replay": "2026-10-26T17-47-03-859Z.json"
    },
    {
-    "ts": "2026-10-26T17:34:32.459Z",
+    "ts": "2026-10-26T17:46:18.636Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 1,
     "scoreB": 3,
-    "replay": "2026-10-26T17-34-30-657Z.json"
-   },
+    "replay": "2026-10-26T17-46-16-814Z.json"
+   }
+  ],
+  "nowPlaying": [
    {
-    "ts": "2026-10-26T17:33:45.375Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-26T17-33-43-521Z.json"
-   },
-   {
-    "ts": "2026-10-26T17:32:58.308Z",
-    "a": "aggressive",
-    "b": "defensive",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1,
-    "replay": "2026-10-26T17-32-56-467Z.json"
-   },
-   {
+    "file": "2026-10-26T17-32-09-424Z.json",
     "ts": "2026-10-26T17:32:11.238Z",
     "a": "defensive",
     "b": "counterpuncher",
     "winner": "B",
     "scoreA": 2,
-    "scoreB": 3,
-    "replay": "2026-10-26T17-32-09-424Z.json"
+    "scoreB": 3
    },
    {
+    "file": "2026-10-26T17-31-22-302Z.json",
     "ts": "2026-10-26T17:31:24.157Z",
     "a": "aggressive",
     "b": "counterpuncher",
     "winner": "A",
     "scoreA": 3,
-    "scoreB": 2,
-    "replay": "2026-10-26T17-31-22-302Z.json"
-   }
-  ],
-  "nowPlaying": [
-   {
-    "file": "2026-10-26T17-17-15-043Z.json",
-    "ts": "2026-10-26T17:17:16.882Z",
-    "a": "aggressive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 3,
-    "scoreB": 1
+    "scoreB": 2
    },
    {
-    "file": "2026-10-26T17-16-27-976Z.json",
-    "ts": "2026-10-26T17:16:29.810Z",
+    "file": "2026-10-26T17-30-35-199Z.json",
+    "ts": "2026-10-26T17:30:37.075Z",
     "a": "aggressive",
     "b": "defensive",
     "winner": "A",
     "scoreA": 3,
     "scoreB": 1
-   },
-   {
-    "file": "2026-10-26T17-15-40-926Z.json",
-    "ts": "2026-10-26T17:15:42.730Z",
-    "a": "defensive",
-    "b": "counterpuncher",
-    "winner": "A",
-    "scoreA": 2,
-    "scoreB": 2
    }
   ],
   "records": [
@@ -165,17 +165,22 @@
   ]
  },
  "season": {
-  "tournamentsRun": 129,
-  "innovations": 42,
+  "tournamentsRun": 130,
+  "innovations": 43,
   "champion": {
-   "file": "counterrush-bait-anvil.json",
-   "name": "counterrush-bait-anvil",
-   "author": "claude",
-   "description": "Exploits flag-pincer-exploiter's split opening (red move-then-defend at the flag and blue attacking arrive staggered, yellow patrols centre alone, and only green guards its home) and its two all-in reflexes: flag_stolen sends all four of its units to enemy_flag instead of chasing the carrier, and captured sends all four to their_flag again on every score. A three-unit anvil (blue, green, yellow defend our_flag) plus red patrolling centre shreds its staggered raid, its lone yellow and its predictable counter-rushes when they arrive; a pair raid then steals against its lone green home guard and the carrier walks home unchased while the champion counter-rushes into the anvil. Its slow 1200t cheap pulse mostly wastes calls on weakest-regroups-at-centre, so it cannot re-plan inside this strategy's 1500t cheap / 5400t smart cadence on a 32 budget (worst case 15 cheap + 4 smart = 19 calls in the 24000-tick cap, never a hard stop). flag_stolen here is answered by a pair plus nearest chasing the carrier — never the whole squad — flag_dropped is secured by a pair at our_flag instead of a swarm, their_flag_dropped is scooped by pair plus nearest (3 units against its pair alone), we_scored instantly re-raids with a pair against the home its captured reflex just emptied while two hold our flag, and they_scored counter-runs red while the anvil re-forms.",
+   "file": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-2.json",
+   "name": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-2",
+   "author": "breeder",
+   "description": "Bred from lonesentryanvil133123-x-lonesentryanvil13312-3-s123 × lonesentryanvil1331233s123-x-lonesentryanvil133123-1. cheap cadence→450; added then→defend.",
    "calls": 32
   },
-  "championFile": "counterrush-bait-anvil.json",
+  "championFile": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-2.json",
   "recent": [
+   {
+    "n": 130,
+    "champion": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-2",
+    "runnerUp": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-3"
+   },
    {
     "n": 129,
     "champion": "counterrush-bait-anvil",
@@ -200,19 +205,14 @@
     "n": 125,
     "champion": "lonesentryanvil1331233s123-x-lonesentryanvil133123-2",
     "runnerUp": "sentry-overload-swarm"
-   },
-   {
-    "n": 124,
-    "champion": "lonesentryanvil1331233s123-x-lonesentryanvil133123-1",
-    "runnerUp": "sentry-overload-swarm"
    }
   ],
   "finalScore": null,
   "newest": {
-   "file": "pairhammer-clocktrap.json",
-   "name": "pairhammer-clocktrap",
-   "author": "claude",
-   "description": "Exploits lonesentryanvil1331233s123-x-lonesentryanvil133123-2 on three counts: (1) its 450t cheap pulse burns its 28-call budget and hard-stops it around tick 11700 in any long match, so a 1500t cheap / 3000t smart pulse on a 40-call budget can never stop inside the 24000-tick cap (max 16 cheap + 6 smart = 22); (2) its opening defends with lone yellow while green patrols centre, so a three-unit opening wave (red runs their_flag then home behind blue and yellow both attacking their_flag) overwhelms yellow 3v1 before green swings home; (3) its reflexes feed losses: unit_down commits its pair to attack their_flag, stripping home further after the first kill, and its we_scored wave sends red and blue as pure unarmed movers. This counter does the opposite after a loss (pair plus idle defend our_flag), answers their theft with a full pair-plus-nearest converge instead of its diluted flag_stolen, shreds its mover wave with a full anvil on they_scored, and times its late smart plans (post-11700) as flag runs against the frozen champion while one unit keeps the home flag."
+   "file": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-3.json",
+   "name": "lonesentryanvil133123xlonesentryanvil133123s123-x-lonesentryanvil1331233s123xlonesentryanvil1331231-3",
+   "author": "breeder",
+   "description": "Bred from lonesentryanvil133123-x-lonesentryanvil13312-3-s123 × lonesentryanvil1331233s123-x-lonesentryanvil133123-1. cheap cadence→1200; budget→24; trigger their_flag_dropped from lonesentryanvil1331233s123-x-lonesentryanvil133123-1."
   }
  }
 }
